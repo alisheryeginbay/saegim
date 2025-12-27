@@ -9,7 +9,7 @@ import SwiftUI
 import SwiftData
 
 @main
-struct saegimApp: App {
+struct SaegimApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Card.self,
