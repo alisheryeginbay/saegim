@@ -8,19 +8,17 @@ import SwiftData
 
 struct DashboardView: View {
     @Query private var cards: [Card]
-
-    private var totalCards: Int { cards.count }
-    private var dueCards: Int { cards.filter { $0.isDue }.count }
-    private var learnedCards: Int { cards.filter { $0.repetitions > 0 }.count }
+    @State private var stats: (total: Int, due: Int, learned: Int) = (0, 0, 0)
+    @State private var activityData: [Date: Int] = [:]
 
     var body: some View {
         ScrollHeader(title: "Dashboard") {
             VStack(alignment: .leading, spacing: 24) {
                 // Stats row
                 HStack(spacing: 16) {
-                    StatCard(title: "Total Cards", value: "\(totalCards)", icon: "rectangle.stack", color: .blue)
-                    StatCard(title: "Due Today", value: "\(dueCards)", icon: "clock", color: .orange)
-                    StatCard(title: "Learned", value: "\(learnedCards)", icon: "checkmark.circle", color: .green)
+                    StatCard(title: "Total Cards", value: "\(stats.total)", icon: "rectangle.stack", color: .blue)
+                    StatCard(title: "Due Today", value: "\(stats.due)", icon: "clock", color: .orange)
+                    StatCard(title: "Learned", value: "\(stats.learned)", icon: "checkmark.circle", color: .green)
                 }
 
                 // Activity widget
@@ -28,13 +26,34 @@ struct DashboardView: View {
                     Text("Activity")
                         .font(.headline)
 
-                    ActivityGrid(cards: cards)
+                    ActivityGrid(activityData: activityData)
                 }
             }
             .padding(32)
             .frame(maxWidth: 900)
             .frame(maxWidth: .infinity, alignment: .center)
         }
+        .onAppear { updateStats() }
+        .onChange(of: cards.count) { _, _ in updateStats() }
+    }
+
+    private func updateStats() {
+        var due = 0
+        var learned = 0
+        let calendar = Calendar.current
+        var activity: [Date: Int] = [:]
+
+        for card in cards {
+            if card.isDue { due += 1 }
+            if card.repetitions > 0 { learned += 1 }
+            if let lastReview = card.lastReviewDate {
+                let day = calendar.startOfDay(for: lastReview)
+                activity[day, default: 0] += 1
+            }
+        }
+
+        stats = (cards.count, due, learned)
+        activityData = activity
     }
 }
 
@@ -62,27 +81,12 @@ struct StatCard: View {
 }
 
 struct ActivityGrid: View {
-    let cards: [Card]
+    let activityData: [Date: Int]
 
     private let columns = 53 // weeks in a year
     private let rows = 7 // days in a week
     private let cellSize: CGFloat = 12
     private let cellSpacing: CGFloat = 3
-
-    private var activityData: [Date: Int] {
-        var data: [Date: Int] = [:]
-        let calendar = Calendar.current
-
-        for card in cards {
-            // Count reviews by date
-            if let lastReview = card.lastReviewDate {
-                let day = calendar.startOfDay(for: lastReview)
-                data[day, default: 0] += 1
-            }
-        }
-
-        return data
-    }
 
     private func dateFor(week: Int, day: Int) -> Date {
         let calendar = Calendar.current

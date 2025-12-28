@@ -10,7 +10,7 @@ struct StudySessionView: View {
     @Environment(\.dismiss) private var dismiss
     let deck: Deck
 
-    @State private var cardIDsToStudy: [UUID] = []  // Store IDs, not model objects
+    @State private var cardsToStudy: [Card] = []  // Cached card array
     @State private var currentIndex = 0
     @State private var isFlipped = false
     @State private var sessionComplete = false
@@ -20,12 +20,6 @@ struct StudySessionView: View {
         var cardsReviewed = 0
         var correctAnswers = 0
         var startTime = Date()
-    }
-
-    private var cardsToStudy: [Card] {
-        cardIDsToStudy.compactMap { id in
-            deck.cards.first { $0.id == id }
-        }
     }
 
     private var currentCard: Card? {
@@ -43,14 +37,14 @@ struct StudySessionView: View {
 
                 Spacer()
 
-                Text("\(currentIndex + 1) / \(cardIDsToStudy.count)")
+                Text("\(currentIndex + 1) / \(cardsToStudy.count)")
                     .font(.headline)
                     .monospacedDigit()
 
                 Spacer()
 
                 // Progress
-                ProgressView(value: Double(currentIndex), total: Double(max(1, cardIDsToStudy.count)))
+                ProgressView(value: Double(currentIndex), total: Double(max(1, cardsToStudy.count)))
                     .frame(width: 100)
             }
             .padding()
@@ -61,10 +55,10 @@ struct StudySessionView: View {
             if sessionComplete {
                 SessionCompleteView(
                     stats: sessionStats,
-                    totalCards: cardIDsToStudy.count,
+                    totalCards: cardsToStudy.count,
                     onDone: { dismiss() }
                 )
-            } else if cardIDsToStudy.isEmpty {
+            } else if cardsToStudy.isEmpty {
                 NoCardsView(onDismiss: { dismiss() })
             } else if let card = currentCard {
                 // Card View
@@ -119,11 +113,10 @@ struct StudySessionView: View {
         let dueCards = deck.dueCards.shuffled()
         let newCards = deck.newCards.shuffled()
 
-        // Combine: prioritize due cards, then add new cards
-        let selectedCards = Array((dueCards + newCards).prefix(20))
-        cardIDsToStudy = selectedCards.map { $0.id }
+        // Combine: prioritize due cards, then add new cards (max 20)
+        cardsToStudy = Array((dueCards + newCards).prefix(20))
 
-        if cardIDsToStudy.isEmpty {
+        if cardsToStudy.isEmpty {
             sessionComplete = true
         }
     }
@@ -143,7 +136,7 @@ struct StudySessionView: View {
         }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            if currentIndex < cardIDsToStudy.count - 1 {
+            if currentIndex < cardsToStudy.count - 1 {
                 currentIndex += 1
             } else {
                 sessionComplete = true

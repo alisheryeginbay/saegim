@@ -15,9 +15,10 @@ struct AllCardsView: View {
     @State private var searchText = ""
     @State private var selectedCard: Card?
     @State private var selectedDeckID: UUID?
+    @State private var filteredCards: [Card] = []
 
-    private var filteredCards: [Card] {
-        var result = Array(cards)
+    private func updateFilteredCards() {
+        var result = cards
 
         if let deckID = selectedDeckID {
             result = result.filter { $0.deck?.id == deckID }
@@ -30,7 +31,7 @@ struct AllCardsView: View {
             }
         }
 
-        return result
+        filteredCards = result
     }
 
     var body: some View {
@@ -98,9 +99,19 @@ struct AllCardsView: View {
             }
         }
         .onAppear {
+            updateFilteredCards()
             if selectedCard == nil, let firstCard = filteredCards.first {
                 selectedCard = firstCard
             }
+        }
+        .onChange(of: cards.count) { _, _ in
+            updateFilteredCards()
+        }
+        .onChange(of: searchText) { _, _ in
+            updateFilteredCards()
+        }
+        .onChange(of: selectedDeckID) { _, _ in
+            updateFilteredCards()
         }
     }
 }
