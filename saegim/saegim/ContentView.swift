@@ -151,6 +151,7 @@ struct ContentView: View {
         .sheet(isPresented: $showingCSVImport) {
             CSVImportView()
         }
+        .toolbarBackground(.hidden, for: .windowToolbar)
     }
 
     private func deleteDeck(_ deck: Deck) {
