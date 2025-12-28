@@ -48,7 +48,14 @@ struct ContentView: View {
     }
 
     var body: some View {
-        NavigationSplitView(columnVisibility: $columnVisibility) {
+        ZStack {
+            if selectedItem == .dueToday {
+                DottedGridBackground()
+                    .padding(-50)
+                    .ignoresSafeArea()
+            }
+
+            NavigationSplitView(columnVisibility: $columnVisibility) {
             List(selection: $selectedItem) {
                 NavigationLink(value: NavigationItem.dashboard) {
                     Label("Dashboard", systemImage: "square.grid.2x2")
@@ -152,6 +159,7 @@ struct ContentView: View {
             CSVImportView()
         }
         .toolbarBackground(.hidden, for: .windowToolbar)
+        }
     }
 
     private func deleteDeck(_ deck: Deck) {

@@ -45,7 +45,6 @@ struct DueTodayView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .background(DottedGridBackground())
         .navigationTitle("Due Today")
         .toolbar {
             ToolbarItem(placement: .automatic) {
