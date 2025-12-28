@@ -9,34 +9,38 @@ import AppKit
 
 struct DueTodayView: View {
     @Query private var decks: [Deck]
-    @State private var currentIndex = 0
+    @State private var cardQueue: [Card] = []
     @State private var showingAnswer = false
     @State private var reviewedCount = 0
-    @State private var dueCards: [Card] = []
+    @State private var totalToReview = 0
+    @State private var dismissingCard: Card?
+    @State private var dismissType: DismissType = .success
 
-    private var currentCard: Card? {
-        guard currentIndex < dueCards.count else { return nil }
-        return dueCards[currentIndex]
+    enum DismissType {
+        case success  // blur out
+        case forgot   // back to stack
     }
 
-    private var totalCards: Int {
-        dueCards.count
+    private var currentCard: Card? {
+        cardQueue.first
     }
 
     private var progress: Double {
-        guard totalCards > 0 else { return 0 }
-        return Double(reviewedCount) / Double(totalCards)
+        guard totalToReview > 0 else { return 0 }
+        return Double(reviewedCount) / Double(totalToReview)
     }
 
     private func refreshDueCards() {
-        dueCards = decks.flatMap { deck in
+        cardQueue = decks.flatMap { deck in
             deck.cards.filter { $0.isDue || $0.repetitions == 0 }
-        }
+        }.shuffled()
+        totalToReview = cardQueue.count
+        reviewedCount = 0
     }
 
     var body: some View {
         Group {
-            if dueCards.isEmpty {
+            if cardQueue.isEmpty && dismissingCard == nil {
                 AllCaughtUpView()
             } else {
                 VStack(spacing: 0) {
@@ -61,10 +65,10 @@ struct DueTodayView: View {
 
                     // Stacked cards
                     CardStackView(
-                        dueCards: dueCards,
-                        currentIndex: currentIndex,
-                        currentCard: currentCard,
-                        showingAnswer: $showingAnswer
+                        cardQueue: cardQueue,
+                        showingAnswer: $showingAnswer,
+                        dismissingCard: dismissingCard,
+                        dismissType: dismissType
                     )
 
                     Spacer()
@@ -85,7 +89,7 @@ struct DueTodayView: View {
         .navigationTitle("Due Today")
         .toolbar {
             ToolbarItem(placement: .automatic) {
-                Text("\(reviewedCount) / \(totalCards)")
+                Text("\(reviewedCount) / \(totalToReview)")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 8)
@@ -94,7 +98,7 @@ struct DueTodayView: View {
         .background {
             // Hidden button for spacebar shortcut
             Button("") {
-                if !showingAnswer {
+                if !showingAnswer && currentCard != nil {
                     withAnimation(.spring(response: 0.3)) {
                         showingAnswer = true
                     }
@@ -113,7 +117,6 @@ struct DueTodayView: View {
 
     private func reviewCard(_ card: Card, quality: Int) {
         card.review(quality: quality)
-        reviewedCount += 1
 
         // Play sound effect
         if quality >= 3 {
@@ -122,45 +125,63 @@ struct DueTodayView: View {
             NSSound(named: "Basso")?.play()
         }
 
-        withAnimation(.spring(response: 0.4)) {
+        // Set dismiss animation type
+        dismissType = quality >= 2 ? .success : .forgot
+        dismissingCard = card
+
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
             showingAnswer = false
-            if currentIndex < dueCards.count - 1 {
-                currentIndex += 1
+            cardQueue.removeFirst()
+
+            // If forgot, add back to queue (near end but not last)
+            if quality < 2 && cardQueue.count > 0 {
+                let insertIndex = max(0, cardQueue.count - 1)
+                cardQueue.insert(card, at: min(insertIndex, max(2, cardQueue.count)))
             } else {
-                currentIndex = 0
+                reviewedCount += 1
             }
+        }
+
+        // Clear dismissing card after animation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            dismissingCard = nil
         }
     }
 }
 
 struct CardStackView: View {
-    let dueCards: [Card]
-    let currentIndex: Int
-    let currentCard: Card?
+    let cardQueue: [Card]
     @Binding var showingAnswer: Bool
+    let dismissingCard: Card?
+    let dismissType: DueTodayView.DismissType
 
-    private var remainingCards: Int {
-        max(0, dueCards.count - currentIndex)
-    }
-
-    private var stackOffsets: [Int] {
-        let count = min(3, remainingCards)
-        guard count > 0 else { return [] }
-        return Array(0..<count)
-    }
+    private let maxVisibleCards = 4
 
     var body: some View {
         ZStack {
-            // Background cards (stack effect)
-            ForEach(stackOffsets, id: \.self) { offset in
-                let reverseOffset = min(2, remainingCards - 1) - offset
-                if reverseOffset > 0 {
-                    StackedCardBackground(reverseOffset: reverseOffset)
+            // Background stacked cards (show up to 4)
+            ForEach(Array(cardQueue.prefix(maxVisibleCards).enumerated().reversed()), id: \.element.id) { index, card in
+                if index > 0 {
+                    StackedCardPreview(
+                        card: card,
+                        stackIndex: index,
+                        totalVisible: min(cardQueue.count, maxVisibleCards)
+                    )
+                    .zIndex(Double(maxVisibleCards - index))
                 }
             }
 
-            // Current card
-            if let card = currentCard {
+            // Dismissing card animation
+            if let card = dismissingCard {
+                DismissingCardView(
+                    card: card,
+                    dismissType: dismissType
+                )
+                .zIndex(100)
+            }
+
+            // Current card (front)
+            if let card = cardQueue.first, dismissingCard?.id != card.id {
                 StudyCardView(
                     card: card,
                     showingAnswer: $showingAnswer,
@@ -170,38 +191,106 @@ struct CardStackView: View {
                         }
                     }
                 )
-                .id(card.id)
-                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                .zIndex(99)
+                .transition(.asymmetric(
+                    insertion: .scale(scale: 0.95).combined(with: .opacity),
+                    removal: .identity
+                ))
             }
         }
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: cardQueue.first?.id)
     }
 }
 
-struct StackedCardBackground: View {
-    let reverseOffset: Int
-
-    var body: some View {
-        RoundedRectangle(cornerRadius: 20)
-            .fill(.background)
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(.separator, lineWidth: 1)
-            )
-            .frame(width: 500, height: 350)
-            .offset(y: CGFloat(reverseOffset) * 8)
-            .scaleEffect(1 - CGFloat(reverseOffset) * 0.05)
-            .opacity(1 - Double(reverseOffset) * 0.2)
-    }
-}
-
-struct StudyCardView: View {
+struct StackedCardPreview: View {
     let card: Card
-    @Binding var showingAnswer: Bool
-    var onReveal: () -> Void
+    let stackIndex: Int
+    let totalVisible: Int
+
+    private var yOffset: CGFloat {
+        CGFloat(stackIndex) * 12
+    }
+
+    private var scale: CGFloat {
+        1.0 - CGFloat(stackIndex) * 0.04
+    }
+
+    private var opacity: Double {
+        1.0 - Double(stackIndex) * 0.15
+    }
 
     var body: some View {
         VStack {
-            // Front content - top left
+            HStack {
+                Text(card.front)
+                    .font(.title3)
+                    .fontWeight(.medium)
+                    .lineLimit(2)
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
+            Spacer()
+        }
+        .padding(32)
+        .frame(width: 500, height: 350)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(.separator.opacity(0.5), lineWidth: 1)
+        )
+        .offset(y: yOffset)
+        .scaleEffect(scale)
+        .opacity(opacity)
+    }
+}
+
+struct DismissingCardView: View {
+    let card: Card
+    let dismissType: DueTodayView.DismissType
+
+    @State private var animationProgress: CGFloat = 0
+
+    private var blurRadius: CGFloat {
+        dismissType == .success ? animationProgress * 10 : 0
+    }
+
+    private var cardOpacity: Double {
+        1 - Double(animationProgress) * 0.5
+    }
+
+    private var cardScale: CGFloat {
+        dismissType == .success ? 1 + animationProgress * 0.1 : 1 - animationProgress * 0.1
+    }
+
+    private var yOffset: CGFloat {
+        dismissType == .forgot ? animationProgress * 50 : -animationProgress * 30
+    }
+
+    private var rotation: Double {
+        dismissType == .forgot ? Double(animationProgress) * 5 : 0
+    }
+
+    var body: some View {
+        StudyCardContent(card: card, showingAnswer: false)
+            .blur(radius: blurRadius)
+            .opacity(cardOpacity)
+            .scaleEffect(cardScale)
+            .offset(y: yOffset)
+            .rotationEffect(.degrees(rotation))
+            .onAppear {
+                withAnimation(.easeOut(duration: 0.4)) {
+                    animationProgress = 1
+                }
+            }
+    }
+}
+
+struct StudyCardContent: View {
+    let card: Card
+    let showingAnswer: Bool
+
+    var body: some View {
+        VStack {
             HStack {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(card.front)
@@ -221,27 +310,36 @@ struct StudyCardView: View {
                 }
                 Spacer()
             }
-
             Spacer()
-
-            // Eye button - bottom right
-            if !showingAnswer {
-                HStack {
-                    Spacer()
-                    Button(action: onReveal) {
-                        Image(systemName: "eye.fill")
-                            .font(.title2)
-                            .foregroundStyle(.secondary)
-                            .padding(14)
-                            .glassEffect(.regular.interactive(), in: .circle)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
         }
         .padding(32)
         .frame(width: 500, height: 350)
         .glassEffect(.regular, in: .rect(cornerRadius: 24))
+    }
+}
+
+struct StudyCardView: View {
+    let card: Card
+    @Binding var showingAnswer: Bool
+    var onReveal: () -> Void
+
+    var body: some View {
+        ZStack(alignment: .bottomTrailing) {
+            StudyCardContent(card: card, showingAnswer: showingAnswer)
+
+            // Eye button - bottom right
+            if !showingAnswer {
+                Button(action: onReveal) {
+                    Image(systemName: "eye.fill")
+                        .font(.title2)
+                        .foregroundStyle(.secondary)
+                        .padding(14)
+                        .glassEffect(.regular.interactive(), in: .circle)
+                }
+                .buttonStyle(.plain)
+                .padding(24)
+            }
+        }
     }
 }
 
