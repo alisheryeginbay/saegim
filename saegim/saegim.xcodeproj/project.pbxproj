@@ -7,12 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		74CFD0CC2EFF58F2000A717B /* AnkiToMarkdown in Frameworks */ = {isa = PBXBuildFile; productRef = 74CFD0CB2EFF58F2000A717B /* AnkiToMarkdown */; };
+		74EADF572F00A0B500518328 /* AnkiParser in Frameworks */ = {isa = PBXBuildFile; productRef = 74EADF562F00A0B500518328 /* AnkiParser */; };
 		74FA838C2F00549900E0EDFD /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 74FA838B2F00549900E0EDFD /* MarkdownUI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		74CA28D92EFDF3FE009FA3D0 /* saegim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = saegim.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		74CA28D92EFDF3FE009FA3D0 /* saegim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = saegim.app; path = Saegim.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -28,8 +28,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				74CFD0CC2EFF58F2000A717B /* AnkiToMarkdown in Frameworks */,
 				74FA838C2F00549900E0EDFD /* MarkdownUI in Frameworks */,
+				74EADF572F00A0B500518328 /* AnkiParser in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -72,8 +72,8 @@
 			);
 			name = saegim;
 			packageProductDependencies = (
-				74CFD0CB2EFF58F2000A717B /* AnkiToMarkdown */,
 				74FA838B2F00549900E0EDFD /* MarkdownUI */,
+				74EADF562F00A0B500518328 /* AnkiParser */,
 			);
 			productName = saegim;
 			productReference = 74CA28D92EFDF3FE009FA3D0 /* saegim.app */;
@@ -104,8 +104,8 @@
 			mainGroup = 74CA28D02EFDF3FE009FA3D0;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				74CFD0CA2EFF58F2000A717B /* XCRemoteSwiftPackageReference "anki-to-markdown" */,
 				74FA838A2F00549900E0EDFD /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
+				74EADF552F00A0B500518328 /* XCLocalSwiftPackageReference "../AnkiParserSwift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 74CA28DA2EFDF3FE009FA3D0 /* Products */;
@@ -365,15 +365,14 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		74CFD0CA2EFF58F2000A717B /* XCRemoteSwiftPackageReference "anki-to-markdown" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/alisheryeginbay/anki-to-markdown";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
+/* Begin XCLocalSwiftPackageReference section */
+		74EADF552F00A0B500518328 /* XCLocalSwiftPackageReference "../AnkiParserSwift" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../AnkiParserSwift;
 		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCRemoteSwiftPackageReference section */
 		74FA838A2F00549900E0EDFD /* XCRemoteSwiftPackageReference "swift-markdown-ui" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/gonzalezreal/swift-markdown-ui";
@@ -385,10 +384,9 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		74CFD0CB2EFF58F2000A717B /* AnkiToMarkdown */ = {
+		74EADF562F00A0B500518328 /* AnkiParser */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 74CFD0CA2EFF58F2000A717B /* XCRemoteSwiftPackageReference "anki-to-markdown" */;
-			productName = AnkiToMarkdown;
+			productName = AnkiParser;
 		};
 		74FA838B2F00549900E0EDFD /* MarkdownUI */ = {
 			isa = XCSwiftPackageProductDependency;

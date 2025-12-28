@@ -1,0 +1,53 @@
+[package]
+name = "anki-parser"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "High-performance Anki .apkg/.colpkg parser with UniFFI bindings"
+
+[lib]
+crate-type = ["lib", "staticlib", "cdylib"]
+name = "anki_parser"
+
+[dependencies]
+# ZIP archive handling
+zip = { version = "2.2", default-features = false, features = ["deflate", "zstd"] }
+
+# SQLite database access (bundled to avoid system dependency issues)
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+# Zstd decompression (Anki 2.1.50+ uses zstd for media and database)
+zstd = "0.13"
+
+# JSON parsing for media mapping and deck configs
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# UniFFI for Swift bindings
+uniffi = { version = "0.28", features = ["cli"] }
+
+# Error handling
+thiserror = "2.0"
+
+# Regex for HTML parsing and media reference extraction
+regex = "1.11"
+
+# Parallel processing for large collections
+rayon = "1.10"
+
+# Logging
+log = "0.4"
+
+# HTML entity decoding
+html-escape = "0.2"
+
+[build-dependencies]
+uniffi = { version = "0.28", features = ["build"] }
+
+[dev-dependencies]
+tempfile = "3.14"
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi_bindgen.rs"
+

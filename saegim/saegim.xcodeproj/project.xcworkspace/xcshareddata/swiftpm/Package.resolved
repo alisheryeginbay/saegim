@@ -1,24 +1,6 @@
 {
-  "originHash" : "02c9e83a21ca84ce0364a92fce09e34d8e1932199e36ca6009777a33fc129e86",
+  "originHash" : "8d246a4177250d524c755f717676737f14c15cc5b9971f00a36d1705e95aff9f",
   "pins" : [
-    {
-      "identity" : "anki-to-markdown",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/alisheryeginbay/anki-to-markdown",
-      "state" : {
-        "branch" : "main",
-        "revision" : "7cbcb4f613775b2ba8ab133f78dd285bc94a26cf"
-      }
-    },
-    {
-      "identity" : "bitbytedata",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/tsolomko/BitByteData",
-      "state" : {
-        "revision" : "cdcdc5177ad536cfb11b95c620f926a81014b7fe",
-        "version" : "2.0.4"
-      }
-    },
     {
       "identity" : "networkimage",
       "kind" : "remoteSourceControl",
@@ -26,15 +8,6 @@
       "state" : {
         "revision" : "2849f5323265386e200484b0d0f896e73c3411b9",
         "version" : "6.0.1"
-      }
-    },
-    {
-      "identity" : "swcompression",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/tsolomko/SWCompression.git",
-      "state" : {
-        "revision" : "390e0b0af8dd19a600005a242a89e570ff482e09",
-        "version" : "4.8.6"
       }
     },
     {
@@ -53,15 +26,6 @@
       "state" : {
         "revision" : "5f613358148239d0292c0cef674a3c2314737f9e",
         "version" : "2.4.1"
-      }
-    },
-    {
-      "identity" : "zstd.swift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/awxkee/zstd.swift.git",
-      "state" : {
-        "revision" : "895dac6adf40f4adf6cd889dbff31958e6fa1203",
-        "version" : "1.0.1"
       }
     }
   ],

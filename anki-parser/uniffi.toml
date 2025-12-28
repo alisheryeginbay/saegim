@@ -1,0 +1,6 @@
+[bindings.swift]
+cdylib_name = "anki_parser"
+module_name = "AnkiParser"
+ffi_module_name = "AnkiParserFFI"
+generate_module_map = true
+generate_immutable_records = true

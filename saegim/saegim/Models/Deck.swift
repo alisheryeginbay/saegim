@@ -56,7 +56,7 @@ final class Deck {
         self.coverImageData = coverImage.tiffRepresentation
     }
 
-    /// All cards including from subdecks
+    /// All cards including from subdecks (expensive - use sparingly)
     var allCards: [Card] {
         var result = cards
         for subdeck in subdecks {
@@ -65,9 +65,13 @@ final class Deck {
         return result
     }
 
-    /// Total card count including subdecks
+    /// Total card count including subdecks (optimized - counts only, no array creation)
     var totalCardCount: Int {
-        allCards.count
+        var count = cards.count
+        for subdeck in subdecks {
+            count += subdeck.totalCardCount
+        }
+        return count
     }
 
     /// Check if this deck has any subdecks
@@ -87,27 +91,38 @@ final class Deck {
         cards.count
     }
 
+    /// Due cards (creates array - use dueCount for just counting)
     var dueCards: [Card] {
         cards.filter { $0.isDue }
     }
 
+    /// Count of due cards (optimized - no array creation)
     var dueCount: Int {
-        dueCards.count
+        cards.reduce(0) { $0 + ($1.isDue ? 1 : 0) }
     }
 
+    /// New cards (creates array - use newCount for just counting)
     var newCards: [Card] {
         cards.filter { $0.repetitions == 0 }
     }
 
+    /// Count of new cards (optimized - no array creation)
     var newCount: Int {
-        newCards.count
+        cards.reduce(0) { $0 + ($1.repetitions == 0 ? 1 : 0) }
     }
 
+    /// Learned cards (creates array - use learnedCount for just counting)
     var learnedCards: [Card] {
         cards.filter { $0.repetitions > 0 && !$0.isDue }
     }
 
+    /// Count of learned cards (optimized - no array creation)
     var learnedCount: Int {
-        learnedCards.count
+        cards.reduce(0) { $0 + ($1.repetitions > 0 && !$1.isDue ? 1 : 0) }
+    }
+
+    /// Check if deck is empty (direct cards only, not recursive)
+    var isEmpty: Bool {
+        cards.isEmpty
     }
 }

@@ -187,7 +187,6 @@ struct ActivityGrid: View {
 
     private func monthLabels() -> [(name: String, weeks: Int, offset: Int)] {
         let calendar = Calendar.current
-        let today = Date()
         var result: [(name: String, weeks: Int, offset: Int)] = []
         var currentMonth = -1
         var weekCount = 0
