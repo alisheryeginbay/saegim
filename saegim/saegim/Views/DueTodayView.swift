@@ -15,9 +15,6 @@ struct DueTodayView: View {
     @State private var totalToReview = 0
 
     private var currentCard: Card? { cardQueue.first }
-    private var progress: Double {
-        totalToReview > 0 ? Double(reviewedCount) / Double(totalToReview) : 0
-    }
 
     var body: some View {
         Group {
@@ -25,10 +22,6 @@ struct DueTodayView: View {
                 AllCaughtUpView()
             } else {
                 VStack(spacing: 0) {
-                    ProgressBar(progress: progress)
-                        .padding(.horizontal, 32)
-                        .padding(.top, 16)
-
                     Spacer()
 
                     CardStackView(cardQueue: cardQueue, showingAnswer: $showingAnswer)
@@ -84,24 +77,6 @@ struct DueTodayView: View {
         } else {
             reviewedCount += 1
         }
-    }
-}
-
-struct ProgressBar: View {
-    let progress: Double
-
-    var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(.quaternary)
-                    .frame(height: 4)
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(.green)
-                    .frame(width: geometry.size.width * progress, height: 4)
-            }
-        }
-        .frame(height: 4)
     }
 }
 

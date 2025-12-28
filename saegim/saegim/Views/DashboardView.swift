@@ -13,24 +13,29 @@ struct DashboardView: View {
 
     var body: some View {
         ScrollHeader(title: "Dashboard") {
-            VStack(alignment: .leading, spacing: 24) {
-                // Stats row
-                HStack(spacing: 16) {
-                    StatCard(title: "Total Cards", value: "\(stats.total)", icon: "rectangle.stack", color: .blue)
-                    StatCard(title: "Due Today", value: "\(stats.due)", icon: "clock", color: .orange)
-                    StatCard(title: "Learned", value: "\(stats.learned)", icon: "checkmark.circle", color: .green)
-                }
+            GlassEffectContainer {
+                VStack(spacing: 16) {
+                    // Stats row
+                    HStack(spacing: 12) {
+                        StatCard(title: "Total Cards", value: "\(stats.total)", icon: "rectangle.stack", color: .blue)
+                        StatCard(title: "Due Today", value: "\(stats.due)", icon: "clock", color: .orange)
+                        StatCard(title: "Learned", value: "\(stats.learned)", icon: "checkmark.circle", color: .green)
+                    }
 
-                // Activity widget
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Activity")
-                        .font(.headline)
-
-                    ActivityGrid(activityData: activityData)
+                    // Activity widget
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Activity")
+                            .font(.headline)
+                        ActivityGrid(activityData: activityData)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(20)
+                    .glassEffect(in: .rect(cornerRadius: 16))
                 }
+                .frame(maxWidth: .infinity)
             }
+            .frame(width: 900)
             .padding(32)
-            .frame(maxWidth: 900)
             .frame(maxWidth: .infinity, alignment: .center)
         }
         .onAppear { updateStats() }
@@ -77,6 +82,8 @@ struct StatCard: View {
                 .font(.system(size: 32, weight: .bold))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
+        .glassEffect(in: .rect(cornerRadius: 16))
     }
 }
 
