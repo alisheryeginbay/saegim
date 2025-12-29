@@ -1,18 +1,51 @@
 #!/bin/bash
 set -e
 
-echo "Building fsrs-swift for macOS..."
+# Check for required targets
+check_targets() {
+    local missing=()
+    for target in aarch64-apple-darwin x86_64-apple-darwin aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios; do
+        if ! rustup target list --installed | grep -q "^$target$"; then
+            missing+=("$target")
+        fi
+    done
+    if [ ${#missing[@]} -gt 0 ]; then
+        echo "Missing Rust targets: ${missing[*]}"
+        echo "Install with: rustup target add ${missing[*]}"
+        exit 1
+    fi
+}
 
-# Build for both architectures
+check_targets
+
+SWIFT_PKG="../FSRSSwift"
+
+echo "Building fsrs-swift for macOS..."
 cargo build --release --target aarch64-apple-darwin
 cargo build --release --target x86_64-apple-darwin
 
-# Create universal binary
-echo "Creating universal binary..."
+echo "Building fsrs-swift for iOS..."
+cargo build --release --target aarch64-apple-ios
+
+echo "Building fsrs-swift for iOS Simulator..."
+cargo build --release --target aarch64-apple-ios-sim
+cargo build --release --target x86_64-apple-ios
+
+# Create universal binaries
+echo "Creating universal binaries..."
+mkdir -p target/release
+
+# macOS universal
 lipo -create \
   target/aarch64-apple-darwin/release/libfsrs_swift.a \
   target/x86_64-apple-darwin/release/libfsrs_swift.a \
-  -output target/release/libfsrs_swift_universal.a
+  -output target/release/libfsrs_swift_macos.a
+
+# iOS Simulator universal
+lipo -create \
+  target/aarch64-apple-ios-sim/release/libfsrs_swift.a \
+  target/x86_64-apple-ios/release/libfsrs_swift.a \
+  -output target/release/libfsrs_swift_ios_sim.a
 
 # Generate Swift bindings
 echo "Generating Swift bindings..."
@@ -22,23 +55,101 @@ cargo run --release --bin uniffi-bindgen generate \
   --language swift \
   --out-dir generated
 
-# Update Swift Package
-echo "Updating Swift Package..."
-SWIFT_PKG="../FSRSSwift"
+# Remove old xcframework and create new structure
+echo "Creating xcframework..."
+rm -rf "$SWIFT_PKG/FSRSSwiftFFI.xcframework"
 mkdir -p "$SWIFT_PKG/Sources/FSRSSwift"
-mkdir -p "$SWIFT_PKG/FSRSSwiftFFI.xcframework/macos-arm64_x86_64/Headers/FSRSSwiftFFI"
 
+# Create xcframework directories
+MACOS_DIR="$SWIFT_PKG/FSRSSwiftFFI.xcframework/macos-arm64_x86_64"
+IOS_DIR="$SWIFT_PKG/FSRSSwiftFFI.xcframework/ios-arm64"
+IOS_SIM_DIR="$SWIFT_PKG/FSRSSwiftFFI.xcframework/ios-arm64_x86_64-simulator"
+
+mkdir -p "$MACOS_DIR/Headers/FSRSSwiftFFI"
+mkdir -p "$IOS_DIR/Headers/FSRSSwiftFFI"
+mkdir -p "$IOS_SIM_DIR/Headers/FSRSSwiftFFI"
+
+# Copy Swift source
 cp generated/FSRSSwift.swift "$SWIFT_PKG/Sources/FSRSSwift/"
-# Header at root level, modulemap in subdirectory (prevents conflict with other xcframeworks)
-cp generated/FSRSSwiftFFI.h "$SWIFT_PKG/FSRSSwiftFFI.xcframework/macos-arm64_x86_64/Headers/"
-# Create modulemap that references header with relative path
-cat > "$SWIFT_PKG/FSRSSwiftFFI.xcframework/macos-arm64_x86_64/Headers/FSRSSwiftFFI/module.modulemap" << 'EOF'
+
+# Copy headers and create modulemaps for each platform
+for dir in "$MACOS_DIR" "$IOS_DIR" "$IOS_SIM_DIR"; do
+    cp generated/FSRSSwiftFFI.h "$dir/Headers/"
+    cat > "$dir/Headers/FSRSSwiftFFI/module.modulemap" << 'EOF'
 module FSRSSwiftFFI {
     header "../FSRSSwiftFFI.h"
     export *
 }
 EOF
-cp target/release/libfsrs_swift_universal.a "$SWIFT_PKG/FSRSSwiftFFI.xcframework/macos-arm64_x86_64/libfsrs_swift.a"
+done
+
+# Copy libraries
+cp target/release/libfsrs_swift_macos.a "$MACOS_DIR/libfsrs_swift.a"
+cp target/aarch64-apple-ios/release/libfsrs_swift.a "$IOS_DIR/libfsrs_swift.a"
+cp target/release/libfsrs_swift_ios_sim.a "$IOS_SIM_DIR/libfsrs_swift.a"
+
+# Create Info.plist
+cat > "$SWIFT_PKG/FSRSSwiftFFI.xcframework/Info.plist" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>AvailableLibraries</key>
+    <array>
+        <dict>
+            <key>HeadersPath</key>
+            <string>Headers</string>
+            <key>LibraryIdentifier</key>
+            <string>macos-arm64_x86_64</string>
+            <key>LibraryPath</key>
+            <string>libfsrs_swift.a</string>
+            <key>SupportedArchitectures</key>
+            <array>
+                <string>arm64</string>
+                <string>x86_64</string>
+            </array>
+            <key>SupportedPlatform</key>
+            <string>macos</string>
+        </dict>
+        <dict>
+            <key>HeadersPath</key>
+            <string>Headers</string>
+            <key>LibraryIdentifier</key>
+            <string>ios-arm64</string>
+            <key>LibraryPath</key>
+            <string>libfsrs_swift.a</string>
+            <key>SupportedArchitectures</key>
+            <array>
+                <string>arm64</string>
+            </array>
+            <key>SupportedPlatform</key>
+            <string>ios</string>
+        </dict>
+        <dict>
+            <key>HeadersPath</key>
+            <string>Headers</string>
+            <key>LibraryIdentifier</key>
+            <string>ios-arm64_x86_64-simulator</string>
+            <key>LibraryPath</key>
+            <string>libfsrs_swift.a</string>
+            <key>SupportedArchitectures</key>
+            <array>
+                <string>arm64</string>
+                <string>x86_64</string>
+            </array>
+            <key>SupportedPlatform</key>
+            <string>ios</string>
+            <key>SupportedPlatformVariant</key>
+            <string>simulator</string>
+        </dict>
+    </array>
+    <key>CFBundlePackageType</key>
+    <string>XFWK</string>
+    <key>XCFrameworkFormatVersion</key>
+    <string>1.0</string>
+</dict>
+</plist>
+EOF
 
 echo "Done! Swift package updated at $SWIFT_PKG"
 echo ""

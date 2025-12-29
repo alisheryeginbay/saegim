@@ -252,9 +252,15 @@ struct SubdeckCard: View {
         .background(
             Group {
                 if let coverImage = deck.coverImage {
+                    #if os(macOS)
                     Image(nsImage: coverImage)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
+                    #else
+                    Image(uiImage: coverImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                    #endif
                 } else {
                     Color(red: 0.1, green: 0.1, blue: 0.18)
                 }

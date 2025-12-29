@@ -96,9 +96,11 @@ struct StudySessionView: View {
         .onAppear {
             setupSession()
         }
+        #if os(macOS)
         .onExitCommand {
             dismiss()
         }
+        #endif
         .onKeyPress(.space) {
             if !isFlipped {
                 withAnimation(.spring(duration: 0.4)) {

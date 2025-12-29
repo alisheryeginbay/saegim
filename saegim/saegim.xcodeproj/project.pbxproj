@@ -10,15 +10,54 @@
 		74EADF572F00A0B500518328 /* AnkiParser in Frameworks */ = {isa = PBXBuildFile; productRef = 74EADF562F00A0B500518328 /* AnkiParser */; };
 		74FA838C2F00549900E0EDFD /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 74FA838B2F00549900E0EDFD /* MarkdownUI */; };
 		74FSRS012F00B0C600518328 /* FSRSSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 74FSRS002F00B0C600518328 /* FSRSSwift */; };
+		74IOS0012F01A0B500518328 /* AnkiParser in Frameworks */ = {isa = PBXBuildFile; productRef = 74IOS0022F01A0B500518328 /* AnkiParser */; };
+		74IOS0032F01549900E0EDFD /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 74IOS0042F01549900E0EDFD /* MarkdownUI */; };
+		74IOS0052F01B0C600518328 /* FSRSSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 74IOS0062F01B0C600518328 /* FSRSSwift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		74CA28D92EFDF3FE009FA3D0 /* saegim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = saegim.app; path = Saegim.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		74CA28D92EFDF3FE009FA3D0 /* Saegim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Saegim.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		74IOS0072F01C0D600518328 /* Saegim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Saegim.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		74MAC0012F01D0E700518328 /* Exceptions for "saegim" folder in "saegim-macOS" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				iOS/ContentView_iOS.swift,
+				iOS/SaegimApp_iOS.swift,
+				iOS/Views/DeckListView_iOS.swift,
+				iOS/Views/DueTodayView_iOS.swift,
+				iOS/Views/SettingsView_iOS.swift,
+			);
+			target = 74CA28D82EFDF3FE009FA3D0 /* saegim-macOS */;
+		};
+		74IOS0082F01D0E700518328 /* Exceptions for "saegim" folder in "saegim-iOS" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				ContentView.swift,
+				SaegimApp.swift,
+				Views/AllCardsView.swift,
+				Views/CardEditorSheet.swift,
+				Views/Components/ScrollHeader.swift,
+				Views/DashboardView.swift,
+				Views/DeckDetailView.swift,
+				Views/DueTodayView.swift,
+				Views/NewDeckSheet.swift,
+				Views/SettingsView.swift,
+				Views/StudySessionView.swift,
+			);
+			target = 74IOS0092F01C0D600518328 /* saegim-iOS */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		74CA28DB2EFDF3FE009FA3D0 /* saegim */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				74MAC0012F01D0E700518328 /* Exceptions for "saegim" folder in "saegim-macOS" target */,
+				74IOS0082F01D0E700518328 /* Exceptions for "saegim" folder in "saegim-iOS" target */,
+			);
 			path = saegim;
 			sourceTree = "<group>";
 		};
@@ -32,6 +71,16 @@
 				74FA838C2F00549900E0EDFD /* MarkdownUI in Frameworks */,
 				74EADF572F00A0B500518328 /* AnkiParser in Frameworks */,
 				74FSRS012F00B0C600518328 /* FSRSSwift in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		74IOS00A2F01C0D600518328 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				74IOS0032F01549900E0EDFD /* MarkdownUI in Frameworks */,
+				74IOS0012F01A0B500518328 /* AnkiParser in Frameworks */,
+				74IOS0052F01B0C600518328 /* FSRSSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -49,7 +98,8 @@
 		74CA28DA2EFDF3FE009FA3D0 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				74CA28D92EFDF3FE009FA3D0 /* saegim.app */,
+				74CA28D92EFDF3FE009FA3D0 /* Saegim.app */,
+				74IOS0072F01C0D600518328 /* Saegim.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -57,9 +107,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		74CA28D82EFDF3FE009FA3D0 /* saegim */ = {
+		74CA28D82EFDF3FE009FA3D0 /* saegim-macOS */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 74CA28E42EFDF400009FA3D0 /* Build configuration list for PBXNativeTarget "saegim" */;
+			buildConfigurationList = 74CA28E42EFDF400009FA3D0 /* Build configuration list for PBXNativeTarget "saegim-macOS" */;
 			buildPhases = (
 				74CA28D52EFDF3FE009FA3D0 /* Sources */,
 				74CA28D62EFDF3FE009FA3D0 /* Frameworks */,
@@ -72,14 +122,39 @@
 			fileSystemSynchronizedGroups = (
 				74CA28DB2EFDF3FE009FA3D0 /* saegim */,
 			);
-			name = saegim;
+			name = "saegim-macOS";
 			packageProductDependencies = (
 				74FA838B2F00549900E0EDFD /* MarkdownUI */,
 				74EADF562F00A0B500518328 /* AnkiParser */,
 				74FSRS002F00B0C600518328 /* FSRSSwift */,
 			);
 			productName = saegim;
-			productReference = 74CA28D92EFDF3FE009FA3D0 /* saegim.app */;
+			productReference = 74CA28D92EFDF3FE009FA3D0 /* Saegim.app */;
+			productType = "com.apple.product-type.application";
+		};
+		74IOS0092F01C0D600518328 /* saegim-iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 74IOS00B2F01C0D600518328 /* Build configuration list for PBXNativeTarget "saegim-iOS" */;
+			buildPhases = (
+				74IOS00C2F01C0D600518328 /* Sources */,
+				74IOS00A2F01C0D600518328 /* Frameworks */,
+				74IOS00D2F01C0D600518328 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				74CA28DB2EFDF3FE009FA3D0 /* saegim */,
+			);
+			name = "saegim-iOS";
+			packageProductDependencies = (
+				74IOS0042F01549900E0EDFD /* MarkdownUI */,
+				74IOS0022F01A0B500518328 /* AnkiParser */,
+				74IOS0062F01B0C600518328 /* FSRSSwift */,
+			);
+			productName = "saegim-iOS";
+			productReference = 74IOS0072F01C0D600518328 /* Saegim.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -93,6 +168,9 @@
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					74CA28D82EFDF3FE009FA3D0 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+					74IOS0092F01C0D600518328 = {
 						CreatedOnToolsVersion = 26.0;
 					};
 				};
@@ -116,7 +194,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				74CA28D82EFDF3FE009FA3D0 /* saegim */,
+				74CA28D82EFDF3FE009FA3D0 /* saegim-macOS */,
+				74IOS0092F01C0D600518328 /* saegim-iOS */,
 			);
 		};
 /* End PBXProject section */
@@ -129,10 +208,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		74IOS00D2F01C0D600518328 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		74CA28D52EFDF3FE009FA3D0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		74IOS00C2F01C0D600518328 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -262,42 +355,30 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 84QSJK68P2;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Saegim;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
-				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
-				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.yeginbay.saegim;
 				PRODUCT_NAME = Saegim;
-				REGISTER_APP_GROUPS = YES;
-				SDKROOT = auto;
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = macosx;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = macosx;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
-				XROS_DEPLOYMENT_TARGET = 26.0;
 			};
 			name = Debug;
 		};
@@ -307,42 +388,106 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 84QSJK68P2;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Saegim;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
-				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
-				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.yeginbay.saegim;
 				PRODUCT_NAME = Saegim;
-				REGISTER_APP_GROUPS = YES;
-				SDKROOT = auto;
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = macosx;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = macosx;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
-				XROS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
+		74IOS00E2F01C0D600518328 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 84QSJK68P2;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Saegim;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yeginbay.saegim.ios;
+				PRODUCT_NAME = Saegim;
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		74IOS00F2F01C0D600518328 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 84QSJK68P2;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Saegim;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yeginbay.saegim.ios;
+				PRODUCT_NAME = Saegim;
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -358,11 +503,20 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		74CA28E42EFDF400009FA3D0 /* Build configuration list for PBXNativeTarget "saegim" */ = {
+		74CA28E42EFDF400009FA3D0 /* Build configuration list for PBXNativeTarget "saegim-macOS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				74CA28E52EFDF400009FA3D0 /* Debug */,
 				74CA28E62EFDF400009FA3D0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		74IOS00B2F01C0D600518328 /* Build configuration list for PBXNativeTarget "saegim-iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				74IOS00E2F01C0D600518328 /* Debug */,
+				74IOS00F2F01C0D600518328 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -402,6 +556,19 @@
 			productName = MarkdownUI;
 		};
 		74FSRS002F00B0C600518328 /* FSRSSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FSRSSwift;
+		};
+		74IOS0022F01A0B500518328 /* AnkiParser */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = AnkiParser;
+		};
+		74IOS0042F01549900E0EDFD /* MarkdownUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 74FA838A2F00549900E0EDFD /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
+			productName = MarkdownUI;
+		};
+		74IOS0062F01B0C600518328 /* FSRSSwift */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = FSRSSwift;
 		};

@@ -35,6 +35,7 @@ struct SaegimApp: App {
             ContentView()
         }
         .modelContainer(sharedModelContainer)
+        #if os(macOS)
         .windowStyle(.automatic)
         .defaultSize(width: 900, height: 600)
         .commands {
@@ -73,10 +74,13 @@ struct SaegimApp: App {
                 }
             }
         }
+        #endif
 
+        #if os(macOS)
         Settings {
             SettingsView()
         }
+        #endif
     }
 }
 

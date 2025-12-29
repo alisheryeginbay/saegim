@@ -4,6 +4,11 @@
 //
 
 import SwiftUI
+#if canImport(AppKit)
+import AppKit
+#else
+import UIKit
+#endif
 
 extension Color {
     init?(hex: String) {
@@ -38,9 +43,15 @@ extension Color {
     }
 
     func toHex(includeAlpha: Bool = false) -> String? {
+        #if canImport(AppKit)
         guard let components = NSColor(self).cgColor.components else {
             return nil
         }
+        #else
+        guard let components = UIColor(self).cgColor.components else {
+            return nil
+        }
+        #endif
 
         let r = Int(components[0] * 255)
         let g = Int(components[1] * 255)
