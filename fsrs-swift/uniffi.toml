@@ -1,0 +1,6 @@
+[bindings.swift]
+cdylib_name = "fsrs_swift"
+module_name = "FSRSSwift"
+ffi_module_name = "FSRSSwiftFFI"
+generate_module_map = true
+generate_immutable_records = true

@@ -21,7 +21,7 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Deck.name) private var decks: [Deck]
 
-    @State private var selectedItem: NavigationItem? = .dashboard
+    @State private var selectedItem: NavigationItem? = .dueToday
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
     @State private var showingNewDeck = false
     @State private var showingNewCard = false
@@ -57,14 +57,6 @@ struct ContentView: View {
 
             NavigationSplitView(columnVisibility: $columnVisibility) {
             List(selection: $selectedItem) {
-                NavigationLink(value: NavigationItem.dashboard) {
-                    Label("Dashboard", systemImage: "square.grid.2x2")
-                }
-
-                NavigationLink(value: NavigationItem.allCards) {
-                    Label("All Cards", systemImage: "rectangle.stack")
-                }
-
                 NavigationLink(value: NavigationItem.dueToday) {
                     HStack {
                         Label("Due Today", systemImage: "clock")
@@ -75,6 +67,14 @@ struct ContentView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
+                }
+
+                NavigationLink(value: NavigationItem.dashboard) {
+                    Label("Dashboard", systemImage: "square.grid.2x2")
+                }
+
+                NavigationLink(value: NavigationItem.allCards) {
+                    Label("All Cards", systemImage: "rectangle.stack")
                 }
 
                 Section("Decks") {
