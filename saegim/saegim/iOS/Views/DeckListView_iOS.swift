@@ -307,7 +307,7 @@ struct StudySessionView_iOS: View {
         cardQueue.removeFirst()
 
         if rating == .again && cardQueue.count > 0 {
-            cardQueue.insert(card, at: min(max(2, cardQueue.count), cardQueue.count))
+            cardQueue.insert(card, at: min(2, cardQueue.count))
         } else {
             reviewedCount += 1
         }
