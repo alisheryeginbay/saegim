@@ -1,0 +1,27 @@
+[package]
+name = "fsrs-swift"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "FSRS v6 spaced repetition scheduler with UniFFI bindings for Swift"
+
+[lib]
+crate-type = ["lib", "staticlib", "cdylib"]
+name = "fsrs_swift"
+
+[dependencies]
+# FSRS algorithm implementation
+fsrs = "2"
+
+# UniFFI for Swift bindings
+uniffi = { version = "0.28", features = ["cli"] }
+
+# Error handling
+thiserror = "2.0"
+
+[build-dependencies]
+uniffi = { version = "0.28", features = ["build"] }
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi_bindgen.rs"

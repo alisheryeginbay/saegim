@@ -103,22 +103,22 @@ final class Deck {
 
     /// New cards (creates array - use newCount for just counting)
     var newCards: [Card] {
-        cards.filter { $0.repetitions == 0 }
+        cards.filter { $0.state == .new }
     }
 
     /// Count of new cards (optimized - no array creation)
     var newCount: Int {
-        cards.reduce(0) { $0 + ($1.repetitions == 0 ? 1 : 0) }
+        cards.reduce(0) { $0 + ($1.state == .new ? 1 : 0) }
     }
 
     /// Learned cards (creates array - use learnedCount for just counting)
     var learnedCards: [Card] {
-        cards.filter { $0.repetitions > 0 && !$0.isDue }
+        cards.filter { $0.state == .review && !$0.isDue }
     }
 
     /// Count of learned cards (optimized - no array creation)
     var learnedCount: Int {
-        cards.reduce(0) { $0 + ($1.repetitions > 0 && !$1.isDue ? 1 : 0) }
+        cards.reduce(0) { $0 + ($1.state == .review && !$1.isDue ? 1 : 0) }
     }
 
     /// Check if deck is empty (direct cards only, not recursive)

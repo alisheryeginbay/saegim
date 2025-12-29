@@ -5,6 +5,7 @@
 
 import SwiftUI
 import SwiftData
+import FSRSSwift
 
 struct StudySessionView: View {
     @Environment(\.dismiss) private var dismiss
@@ -121,12 +122,12 @@ struct StudySessionView: View {
         }
     }
 
-    private func handleAnswer(quality: Int) {
+    private func handleAnswer(rating: Rating) {
         guard let card = currentCard else { return }
-        card.review(quality: quality)
+        card.review(rating: rating)
 
         sessionStats.cardsReviewed += 1
-        if quality >= 3 {
+        if rating != .again {
             sessionStats.correctAnswers += 1
         }
 
@@ -202,7 +203,7 @@ struct CardFace: View {
 }
 
 struct AnswerButtonsView: View {
-    var onAnswer: (Int) -> Void
+    var onAnswer: (Rating) -> Void
 
     var body: some View {
         VStack(spacing: 12) {
@@ -215,28 +216,28 @@ struct AnswerButtonsView: View {
                     subtitle: "Forgot",
                     color: .red,
                     keyNumber: 1
-                ) { onAnswer(1) }
+                ) { onAnswer(.again) }
 
                 AnswerButton(
                     label: "Hard",
                     subtitle: "Struggled",
                     color: .orange,
                     keyNumber: 2
-                ) { onAnswer(2) }
+                ) { onAnswer(.hard) }
 
                 AnswerButton(
                     label: "Good",
                     subtitle: "Correct",
                     color: .green,
                     keyNumber: 3
-                ) { onAnswer(4) }
+                ) { onAnswer(.good) }
 
                 AnswerButton(
                     label: "Easy",
                     subtitle: "Perfect",
                     color: .blue,
                     keyNumber: 4
-                ) { onAnswer(5) }
+                ) { onAnswer(.easy) }
             }
 
             Text("Press 1-4 to answer")

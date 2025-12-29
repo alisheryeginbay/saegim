@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		74EADF572F00A0B500518328 /* AnkiParser in Frameworks */ = {isa = PBXBuildFile; productRef = 74EADF562F00A0B500518328 /* AnkiParser */; };
 		74FA838C2F00549900E0EDFD /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 74FA838B2F00549900E0EDFD /* MarkdownUI */; };
+		74FSRS012F00B0C600518328 /* FSRSSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 74FSRS002F00B0C600518328 /* FSRSSwift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,6 +31,7 @@
 			files = (
 				74FA838C2F00549900E0EDFD /* MarkdownUI in Frameworks */,
 				74EADF572F00A0B500518328 /* AnkiParser in Frameworks */,
+				74FSRS012F00B0C600518328 /* FSRSSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -74,6 +76,7 @@
 			packageProductDependencies = (
 				74FA838B2F00549900E0EDFD /* MarkdownUI */,
 				74EADF562F00A0B500518328 /* AnkiParser */,
+				74FSRS002F00B0C600518328 /* FSRSSwift */,
 			);
 			productName = saegim;
 			productReference = 74CA28D92EFDF3FE009FA3D0 /* saegim.app */;
@@ -106,6 +109,7 @@
 			packageReferences = (
 				74FA838A2F00549900E0EDFD /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
 				74EADF552F00A0B500518328 /* XCLocalSwiftPackageReference "../AnkiParserSwift" */,
+				74FSRS022F00B0C600518328 /* XCLocalSwiftPackageReference "../FSRSSwift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 74CA28DA2EFDF3FE009FA3D0 /* Products */;
@@ -370,6 +374,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../AnkiParserSwift;
 		};
+		74FSRS022F00B0C600518328 /* XCLocalSwiftPackageReference "../FSRSSwift" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../FSRSSwift;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -377,8 +385,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/gonzalezreal/swift-markdown-ui";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.4.1;
+				branch = main;
+				kind = branch;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -392,6 +400,10 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 74FA838A2F00549900E0EDFD /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
 			productName = MarkdownUI;
+		};
+		74FSRS002F00B0C600518328 /* FSRSSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FSRSSwift;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

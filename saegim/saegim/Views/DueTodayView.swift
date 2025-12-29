@@ -6,6 +6,7 @@
 import SwiftUI
 import SwiftData
 import AppKit
+import FSRSSwift
 
 struct DueTodayView: View {
     @Query private var decks: [Deck]
@@ -60,19 +61,20 @@ struct DueTodayView: View {
     }
 
     private func refreshDueCards() {
-        cardQueue = decks.flatMap { $0.cards.filter { $0.isDue || $0.repetitions == 0 } }.shuffled()
+        cardQueue = decks.flatMap { $0.cards.filter { $0.isDue || $0.state == .new } }.shuffled()
         totalToReview = cardQueue.count
         reviewedCount = 0
     }
 
-    private func reviewCard(_ card: Card, quality: Int) {
-        card.review(quality: quality)
-        NSSound(named: quality >= 3 ? "Pop" : "Basso")?.play()
+    private func reviewCard(_ card: Card, rating: Rating) {
+        card.review(rating: rating)
+        NSSound(named: rating != .again ? "Pop" : "Basso")?.play()
 
         showingAnswer = false
         cardQueue.removeFirst()
 
-        if quality < 2 && cardQueue.count > 0 {
+        // Re-insert "Again" cards back into queue for another attempt
+        if rating == .again && cardQueue.count > 0 {
             cardQueue.insert(card, at: min(max(2, cardQueue.count), cardQueue.count))
         } else {
             reviewedCount += 1
@@ -177,30 +179,56 @@ struct StudyCardView: View {
 
 struct ReviewButtonsRow: View {
     let card: Card
-    let onReview: (Card, Int) -> Void
+    let onReview: (Card, Rating) -> Void
 
     var body: some View {
         HStack(spacing: 12) {
-            ReviewButton(title: "Forgot", shortcut: "1") { onReview(card, 0) }
-            ReviewButton(title: "Hard", shortcut: "2") { onReview(card, 2) }
-            ReviewButton(title: "Good", shortcut: "3") { onReview(card, 3) }
-            ReviewButton(title: "Easy", shortcut: "4") { onReview(card, 5) }
+            ReviewButton(title: "Forgot", shortcut: "1", interval: intervalText(.again)) { onReview(card, .again) }
+            ReviewButton(title: "Hard", shortcut: "2", interval: intervalText(.hard)) { onReview(card, .hard) }
+            ReviewButton(title: "Good", shortcut: "3", interval: intervalText(.good)) { onReview(card, .good) }
+            ReviewButton(title: "Easy", shortcut: "4", interval: intervalText(.easy)) { onReview(card, .easy) }
         }
+    }
+
+    private func intervalText(_ rating: Rating) -> String? {
+        guard let states = card.previewNextStates() else { return nil }
+        let info: SchedulingInfo = switch rating {
+        case .again: states.again
+        case .hard: states.hard
+        case .good: states.good
+        case .easy: states.easy
+        }
+        return formatInterval(info.interval)
+    }
+
+    private func formatInterval(_ days: UInt32) -> String {
+        if days == 0 { return "<1d" }
+        if days < 30 { return "\(days)d" }
+        if days < 365 { return "\(days / 30)mo" }
+        return "\(days / 365)y"
     }
 }
 
 struct ReviewButton: View {
     let title: String
     let shortcut: KeyEquivalent
+    var interval: String? = nil
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
-                Text(title).font(.body.weight(.medium))
-                Text(String(shortcut.character))
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
+            VStack(spacing: 4) {
+                HStack(spacing: 8) {
+                    Text(title).font(.body.weight(.medium))
+                    Text(String(shortcut.character))
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
+                if let interval = interval {
+                    Text(interval)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)

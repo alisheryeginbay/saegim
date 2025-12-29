@@ -26,11 +26,18 @@ cargo run --release --bin uniffi-bindgen generate \
 echo "Updating Swift Package..."
 SWIFT_PKG="../AnkiParserSwift"
 mkdir -p "$SWIFT_PKG/Sources/AnkiParser"
-mkdir -p "$SWIFT_PKG/AnkiParserFFI.xcframework/macos-arm64_x86_64/Headers"
+mkdir -p "$SWIFT_PKG/AnkiParserFFI.xcframework/macos-arm64_x86_64/Headers/AnkiParserFFI"
 
 cp generated/AnkiParser.swift "$SWIFT_PKG/Sources/AnkiParser/"
+# Header at root level, modulemap in subdirectory (prevents conflict with other xcframeworks)
 cp generated/AnkiParserFFI.h "$SWIFT_PKG/AnkiParserFFI.xcframework/macos-arm64_x86_64/Headers/"
-cp generated/AnkiParserFFI.modulemap "$SWIFT_PKG/AnkiParserFFI.xcframework/macos-arm64_x86_64/Headers/module.modulemap"
+# Create modulemap that references header with relative path
+cat > "$SWIFT_PKG/AnkiParserFFI.xcframework/macos-arm64_x86_64/Headers/AnkiParserFFI/module.modulemap" << 'EOF'
+module AnkiParserFFI {
+    header "../AnkiParserFFI.h"
+    export *
+}
+EOF
 cp target/release/libanki_parser_universal.a "$SWIFT_PKG/AnkiParserFFI.xcframework/macos-arm64_x86_64/libanki_parser.a"
 
 echo "Done! Swift package updated at $SWIFT_PKG"
