@@ -8,6 +8,11 @@ import SwiftData
 import UniformTypeIdentifiers
 import MarkdownUI
 import AVFoundation
+#if canImport(AppKit)
+import AppKit
+#else
+import UIKit
+#endif
 
 struct AllCardsView: View {
     @Query(sort: \Card.createdAt, order: .reverse) private var cards: [Card]
@@ -511,17 +516,25 @@ struct LocalFileImageProvider: ImageProvider {
 
 struct LocalImageView: View {
     let url: URL?
-    @State private var loadedImage: NSImage?
+    @State private var loadedImage: PlatformImage?
     @State private var didAttemptLoad = false
 
     var body: some View {
         Group {
-            if let nsImage = loadedImage {
-                Image(nsImage: nsImage)
+            if let platformImage = loadedImage {
+                #if canImport(AppKit)
+                Image(nsImage: platformImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(maxHeight: 200)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
+                #else
+                Image(uiImage: platformImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxHeight: 200)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                #endif
             } else if didAttemptLoad {
                 Label("Image not found", systemImage: "photo")
                     .foregroundStyle(.secondary)
@@ -536,36 +549,31 @@ struct LocalImageView: View {
     }
 
     private func loadImage() {
-        NSLog("LocalImageView.loadImage() called with URL: %@", url?.absoluteString ?? "nil")
-
         guard let url = url else {
-            NSLog("  URL is nil")
             didAttemptLoad = true
             return
         }
 
         guard let resolved = MediaURLResolver.resolve(url) else {
-            NSLog("  Failed to resolve URL: %@", url.absoluteString)
             didAttemptLoad = true
             return
         }
 
-        NSLog("  Resolved to path: %@", resolved.path)
-
-        // Check if file exists
         let fileManager = FileManager.default
         if !fileManager.fileExists(atPath: resolved.path) {
-            NSLog("  ERROR: File does not exist at path")
             didAttemptLoad = true
             return
         }
 
+        #if canImport(AppKit)
         if let image = NSImage(contentsOf: resolved) {
-            NSLog("  SUCCESS: Image loaded, size: %.0fx%.0f", image.size.width, image.size.height)
             loadedImage = image
-        } else {
-            NSLog("  ERROR: NSImage failed to load from valid path")
         }
+        #else
+        if let data = try? Data(contentsOf: resolved), let image = UIImage(data: data) {
+            loadedImage = image
+        }
+        #endif
         didAttemptLoad = true
     }
 }

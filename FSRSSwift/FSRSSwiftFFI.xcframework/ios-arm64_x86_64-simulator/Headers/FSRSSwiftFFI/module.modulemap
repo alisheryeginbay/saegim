@@ -1,0 +1,4 @@
+module FSRSSwiftFFI {
+    header "../FSRSSwiftFFI.h"
+    export *
+}

@@ -15,7 +15,7 @@ struct AnkiImportView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
-    @State private var progressHandler = ImportProgressHandler()
+    @State private var currentProgress: AnkiProgress = .extracting
     @State private var selectedURL: URL?
     @State private var importResult: ImportResult?
     @State private var isRunning = false
@@ -26,7 +26,7 @@ struct AnkiImportView: View {
     }
 
     private var progressValue: Double {
-        switch progressHandler.currentProgress {
+        switch currentProgress {
         case .extracting:
             return 0.1
         case .readingDecks:
@@ -41,7 +41,7 @@ struct AnkiImportView: View {
     }
 
     private var progressText: String {
-        switch progressHandler.currentProgress {
+        switch currentProgress {
         case .extracting:
             return "Extracting archive..."
         case .readingDecks:
@@ -201,9 +201,10 @@ struct AnkiImportView: View {
 
         selectedURL = url
         isRunning = true
+        currentProgress = .extracting
 
-        // Capture handler for use in detached task
-        let handler = progressHandler
+        // Create handler - progress updates handled internally
+        let handler = ImportProgressHandler()
 
         // Run parsing AND processing on background thread
         Task.detached(priority: .userInitiated) {
@@ -441,10 +442,15 @@ struct AnkiImportView: View {
 }
 
 /// Progress callback handler for Rust parser
-/// Thread-safe wrapper for progress updates from Rust
+/// Thread-safe wrapper for progress updates from Rust - nonisolated for use across actor boundaries
 final class ImportProgressHandler: AnkiProgressCallback, @unchecked Sendable {
     private let lock = NSLock()
     private var _currentProgress: AnkiProgress = .extracting
+    private let onUpdate: @Sendable (AnkiProgress) -> Void
+
+    init(onUpdate: @escaping @Sendable (AnkiProgress) -> Void = { _ in }) {
+        self.onUpdate = onUpdate
+    }
 
     var currentProgress: AnkiProgress {
         get {
@@ -459,8 +465,11 @@ final class ImportProgressHandler: AnkiProgressCallback, @unchecked Sendable {
         }
     }
 
-    func onProgress(progress: AnkiProgress) {
-        currentProgress = progress
+    nonisolated func onProgress(progress: AnkiProgress) {
+        lock.lock()
+        _currentProgress = progress
+        lock.unlock()
+        onUpdate(progress)
     }
 }
 

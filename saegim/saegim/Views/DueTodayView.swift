@@ -5,7 +5,12 @@
 
 import SwiftUI
 import SwiftData
+#if canImport(AppKit)
 import AppKit
+#else
+import UIKit
+import AudioToolbox
+#endif
 import FSRSSwift
 
 struct DueTodayView: View {
@@ -68,7 +73,11 @@ struct DueTodayView: View {
 
     private func reviewCard(_ card: Card, rating: Rating) {
         card.review(rating: rating)
+        #if canImport(AppKit)
         NSSound(named: rating != .again ? "Pop" : "Basso")?.play()
+        #else
+        AudioServicesPlaySystemSound(rating != .again ? 1057 : 1053)
+        #endif
 
         showingAnswer = false
         cardQueue.removeFirst()
@@ -121,7 +130,11 @@ struct StackedCardPreview: View {
         }
         .padding(32)
         .frame(width: 500, height: 350)
+        #if os(macOS)
         .background(Color(.windowBackgroundColor), in: RoundedRectangle(cornerRadius: 24))
+        #else
+        .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 24))
+        #endif
         .overlay(RoundedRectangle(cornerRadius: 24).stroke(.separator, lineWidth: 1))
         .shadow(color: .black.opacity(0.08), radius: 8, y: 4)
         .offset(y: CGFloat(stackIndex) * 12)
@@ -157,7 +170,11 @@ struct StudyCardView: View {
             }
             .padding(32)
             .frame(width: 500, height: 350)
+            #if os(macOS)
             .background(Color(.windowBackgroundColor), in: RoundedRectangle(cornerRadius: 24))
+            #else
+            .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 24))
+            #endif
             .overlay(RoundedRectangle(cornerRadius: 24).stroke(.separator, lineWidth: 1))
             .shadow(color: .black.opacity(0.1), radius: 12, y: 6)
 
@@ -167,7 +184,11 @@ struct StudyCardView: View {
                         .font(.title2)
                         .foregroundStyle(.secondary)
                         .padding(14)
+                        #if os(macOS)
                         .background(Color(.controlBackgroundColor), in: Circle())
+                        #else
+                        .background(Color(.secondarySystemBackground), in: Circle())
+                        #endif
                         .overlay(Circle().stroke(.separator, lineWidth: 1))
                 }
                 .buttonStyle(.plain)
@@ -232,7 +253,11 @@ struct ReviewButton: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
+            #if os(macOS)
             .background(Color(.controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
+            #else
+            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
+            #endif
             .overlay(RoundedRectangle(cornerRadius: 10).stroke(.separator, lineWidth: 1))
         }
         .buttonStyle(.plain)

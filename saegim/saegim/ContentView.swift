@@ -7,7 +7,6 @@
 
 import SwiftUI
 import SwiftData
-import AppKit
 
 enum NavigationItem: Hashable {
     case dashboard
@@ -158,7 +157,9 @@ struct ContentView: View {
         .sheet(isPresented: $showingCSVImport) {
             CSVImportView()
         }
+        #if os(macOS)
         .toolbarBackground(.hidden, for: .windowToolbar)
+        #endif
         }
     }
 
@@ -230,9 +231,15 @@ struct DeckSidebarRow: View {
         } icon: {
             Group {
                 if let coverImage = deck.coverImage {
+                    #if os(macOS)
                     Image(nsImage: coverImage)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
+                    #else
+                    Image(uiImage: coverImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                    #endif
                 } else {
                     Color.gray
                 }

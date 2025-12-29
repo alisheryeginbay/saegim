@@ -7,7 +7,11 @@
 
 import Foundation
 import SwiftData
+#if canImport(AppKit)
 import AppKit
+#else
+import UIKit
+#endif
 
 @Model
 final class Deck {
@@ -40,20 +44,34 @@ final class Deck {
 
         // Generate cover image
         let coverImage = CoverGenerator.shared.generate(for: name)
+        #if canImport(AppKit)
         self.coverImageData = coverImage.tiffRepresentation
+        #else
+        self.coverImageData = coverImage.pngData()
+        #endif
     }
 
-    var coverImage: NSImage? {
+    var coverImage: PlatformImage? {
+        #if canImport(AppKit)
         if let data = coverImageData, let image = NSImage(data: data) {
             return image
         }
+        #else
+        if let data = coverImageData, let image = UIImage(data: data) {
+            return image
+        }
+        #endif
         // Generate on-demand if missing
         return CoverGenerator.shared.generate(for: name)
     }
 
     func regenerateCover() {
         let coverImage = CoverGenerator.shared.generate(for: name)
+        #if canImport(AppKit)
         self.coverImageData = coverImage.tiffRepresentation
+        #else
+        self.coverImageData = coverImage.pngData()
+        #endif
     }
 
     /// All cards including from subdecks (expensive - use sparingly)
