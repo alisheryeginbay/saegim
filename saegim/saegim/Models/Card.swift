@@ -2,11 +2,20 @@
 //  Card.swift
 //  saegim
 //
-//  Flashcard model with SM-2 spaced repetition data
+//  Flashcard model with FSRS v6 spaced repetition scheduling
 //
 
 import Foundation
 import SwiftData
+import FSRSSwift
+
+/// Card learning state
+enum CardState: Int, Codable {
+    case new = 0        // Never reviewed
+    case learning = 1   // In initial learning phase
+    case review = 2     // Graduated to review
+    case relearning = 3 // Lapsed, relearning
+}
 
 @Model
 final class Card {
@@ -16,10 +25,11 @@ final class Card {
     var createdAt: Date
     var modifiedAt: Date
 
-    // SM-2 Algorithm Fields
-    var easeFactor: Double  // EF: starts at 2.5
-    var interval: Int       // Days until next review
-    var repetitions: Int    // Number of successful reviews
+    // FSRS Memory State
+    var stability: Double      // Expected days to reach 90% recall
+    var difficulty: Double     // Card difficulty (0.0 - 1.0)
+    var state: CardState       // Learning state
+    var lapses: Int            // Times forgotten
     var nextReviewDate: Date
     var lastReviewDate: Date?
 
@@ -41,10 +51,11 @@ final class Card {
         self.createdAt = Date()
         self.modifiedAt = Date()
 
-        // SM-2 defaults
-        self.easeFactor = 2.5
-        self.interval = 0
-        self.repetitions = 0
+        // FSRS defaults for new card
+        self.stability = 0
+        self.difficulty = 0
+        self.state = .new
+        self.lapses = 0
         self.nextReviewDate = Date()
         self.lastReviewDate = nil
 
@@ -55,49 +66,85 @@ final class Card {
         self.deck = deck
     }
 
-    /// SM-2 Algorithm implementation
-    /// Quality: 0-5 (0-2 = fail, 3-5 = pass)
-    func review(quality: Int) {
-        let q = max(0, min(5, quality))
+    /// Get memory state for FSRS (nil for new cards)
+    var memoryState: MemoryState? {
+        guard state != .new else { return nil }
+        return MemoryState(
+            stability: Float(stability),
+            difficulty: Float(difficulty)
+        )
+    }
 
+    /// Days elapsed since last review
+    var daysSinceLastReview: UInt32 {
+        guard let lastReview = lastReviewDate else { return 0 }
+        let days = Calendar.current.dateComponents([.day], from: lastReview, to: Date()).day ?? 0
+        return UInt32(max(0, days))
+    }
+
+    /// FSRS-based review
+    /// - Parameters:
+    ///   - rating: User's rating (Again, Hard, Good, Easy)
+    ///   - desiredRetention: Target retention probability (default 0.9 = 90%)
+    func review(rating: Rating, desiredRetention: Float = 0.9) {
         totalReviews += 1
-        lastReviewDate = Date()
         modifiedAt = Date()
 
-        if q >= 3 {
-            // Correct response
-            correctReviews += 1
+        do {
+            let info = try schedule(
+                memory: memoryState,
+                rating: rating,
+                desiredRetention: desiredRetention,
+                daysElapsed: daysSinceLastReview
+            )
 
-            switch repetitions {
-            case 0:
-                interval = 1
-            case 1:
-                interval = 6
-            default:
-                interval = Int(Double(interval) * easeFactor)
+            // Update memory state
+            stability = Double(info.memory.stability)
+            difficulty = Double(info.memory.difficulty)
+
+            // Update next review date
+            nextReviewDate = Calendar.current.date(
+                byAdding: .day,
+                value: Int(info.interval),
+                to: Date()
+            ) ?? Date()
+            lastReviewDate = Date()
+
+            // Update state and stats based on rating
+            switch rating {
+            case .again:
+                lapses += 1
+                state = state == .new ? .learning : .relearning
+            case .hard, .good, .easy:
+                correctReviews += 1
+                state = .review
             }
-            repetitions += 1
-        } else {
-            // Incorrect - reset
-            repetitions = 0
-            interval = 1
+
+        } catch {
+            print("FSRS scheduling error: \(error)")
         }
+    }
 
-        // Update ease factor
-        // EF' = EF + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))
-        let efDelta = 0.1 - Double(5 - q) * (0.08 + Double(5 - q) * 0.02)
-        easeFactor = max(1.3, easeFactor + efDelta)
-
-        // Set next review date
-        nextReviewDate = Calendar.current.date(
-            byAdding: .day,
-            value: interval,
-            to: Date()
-        ) ?? Date()
+    /// Preview next states for all rating options (for showing intervals on buttons)
+    func previewNextStates(desiredRetention: Float = 0.9) -> NextStates? {
+        try? FSRSSwift.nextStates(
+            memory: memoryState,
+            desiredRetention: desiredRetention,
+            daysElapsed: daysSinceLastReview
+        )
     }
 
     var isDue: Bool {
         nextReviewDate <= Date()
+    }
+
+    /// Current recall probability (0.0-1.0)
+    var retrievability: Double {
+        guard stability > 0 else { return state == .new ? 0 : 1 }
+        return Double(currentRetrievability(
+            stability: Float(stability),
+            daysElapsed: daysSinceLastReview
+        ))
     }
 
     var successRate: Double {
@@ -106,12 +153,25 @@ final class Card {
     }
 
     var statusColor: String {
-        if repetitions == 0 {
-            return "blue"     // New
-        } else if isDue {
-            return "orange"   // Due for review
-        } else {
-            return "green"    // Learned
+        switch state {
+        case .new:
+            return "blue"
+        case .learning, .relearning:
+            return "orange"
+        case .review:
+            return isDue ? "orange" : "green"
         }
+    }
+
+    /// Reset card to new state (for fresh start migration)
+    func resetForFSRS() {
+        stability = 0
+        difficulty = 0
+        nextReviewDate = Date()
+        lastReviewDate = nil
+        state = .new
+        lapses = 0
+        totalReviews = 0
+        correctReviews = 0
     }
 }

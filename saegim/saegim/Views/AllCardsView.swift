@@ -148,12 +148,13 @@ struct CardRowView: View {
     }
 
     private var statusColor: Color {
-        if card.repetitions == 0 {
+        switch card.state {
+        case .new:
             return .blue
-        } else if card.isDue {
+        case .learning, .relearning:
             return .orange
-        } else {
-            return .green
+        case .review:
+            return card.isDue ? .orange : .green
         }
     }
 }
@@ -352,7 +353,7 @@ struct CardInfoPopover: View {
                     .foregroundStyle(.secondary)
             }
 
-            if card.repetitions > 0 {
+            if card.state != .new {
                 Divider()
 
                 Label {

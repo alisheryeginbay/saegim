@@ -50,7 +50,7 @@ struct DashboardView: View {
 
         for card in cards {
             if card.isDue { due += 1 }
-            if card.repetitions > 0 { learned += 1 }
+            if card.state == .review && !card.isDue { learned += 1 }
             if let lastReview = card.lastReviewDate {
                 let day = calendar.startOfDay(for: lastReview)
                 activity[day, default: 0] += 1
