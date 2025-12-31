@@ -10,25 +10,7 @@ import SwiftData
 
 @main
 struct SaegimApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Card.self,
-            Deck.self,
-        ])
-        let modelConfiguration = ModelConfiguration(
-            schema: schema,
-            isStoredInMemoryOnly: false
-        )
-
-        do {
-            return try ModelContainer(
-                for: schema,
-                configurations: [modelConfiguration]
-            )
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
+    var sharedModelContainer: ModelContainer = Persistence.sharedModelContainer
 
     var body: some Scene {
         WindowGroup {

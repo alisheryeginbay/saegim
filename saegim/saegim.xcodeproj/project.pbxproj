@@ -21,17 +21,6 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		74MAC0012F01D0E700518328 /* Exceptions for "saegim" folder in "saegim-macOS" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				iOS/ContentView_iOS.swift,
-				iOS/SaegimApp_iOS.swift,
-				iOS/Views/DeckListView_iOS.swift,
-				iOS/Views/DueTodayView_iOS.swift,
-				iOS/Views/SettingsView_iOS.swift,
-			);
-			target = 74CA28D82EFDF3FE009FA3D0 /* saegim-macOS */;
-		};
 		74IOS0082F01D0E700518328 /* Exceptions for "saegim" folder in "saegim-iOS" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -46,8 +35,21 @@
 				Views/NewDeckSheet.swift,
 				Views/SettingsView.swift,
 				Views/StudySessionView.swift,
+				saegim.entitlements,
 			);
 			target = 74IOS0092F01C0D600518328 /* saegim-iOS */;
+		};
+		74MAC0012F01D0E700518328 /* Exceptions for "saegim" folder in "saegim-macOS" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				iOS/ContentView_iOS.swift,
+				iOS/SaegimApp_iOS.swift,
+				iOS/Views/DeckListView_iOS.swift,
+				iOS/Views/DueTodayView_iOS.swift,
+				iOS/Views/SettingsView_iOS.swift,
+				saegim-ios.entitlements,
+			);
+			target = 74CA28D82EFDF3FE009FA3D0 /* saegim-macOS */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -355,6 +357,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_ENTITLEMENTS = saegim/saegim.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -388,6 +391,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_ENTITLEMENTS = saegim/saegim.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -421,6 +425,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_ENTITLEMENTS = saegim/saegim-ios.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -459,6 +464,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_ENTITLEMENTS = saegim/saegim-ios.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
