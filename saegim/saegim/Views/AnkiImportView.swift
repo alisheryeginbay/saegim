@@ -268,11 +268,11 @@ struct AnkiImportView: View {
 
         for filename in mediaFilenames {
             let ext = (filename as NSString).pathExtension.lowercased()
-            guard let mediaType = MediaType.from(extension: ext) else { continue }
+            guard MediaStorage.isSupported(extension: ext) else { continue }
             guard let data = collection.media.dataFor(filename: filename) else { continue }
 
-            if let relativePath = MediaStorage.store(data, extension: ext, type: mediaType) {
-                mediaMapping[filename] = MediaStorage.buildURL(relativePath: relativePath, type: mediaType)
+            if let relativePath = MediaStorage.store(data, extension: ext) {
+                mediaMapping[filename] = MediaStorage.buildURL(relativePath: relativePath)
             }
         }
 

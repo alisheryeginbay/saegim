@@ -271,8 +271,8 @@ struct CardEditorPanel: View {
         panel.allowsMultipleSelection = false
 
         if panel.runModal() == .OK, let sourceURL = panel.url {
-            guard let relativePath = MediaStorage.store(from: sourceURL, type: .image) else { return }
-            let url = MediaStorage.buildURL(relativePath: relativePath, type: .image)
+            guard let relativePath = MediaStorage.store(from: sourceURL) else { return }
+            let url = MediaStorage.buildURL(relativePath: relativePath)
             let markdown = "![\(sourceURL.lastPathComponent)](\(url))"
             switch field {
             case .front:
@@ -289,8 +289,8 @@ struct CardEditorPanel: View {
         panel.allowsMultipleSelection = false
 
         if panel.runModal() == .OK, let sourceURL = panel.url {
-            guard let relativePath = MediaStorage.store(from: sourceURL, type: .audio) else { return }
-            let url = MediaStorage.buildURL(relativePath: relativePath, type: .audio)
+            guard let relativePath = MediaStorage.store(from: sourceURL) else { return }
+            let url = MediaStorage.buildURL(relativePath: relativePath)
             let markdown = "[🔊 \(sourceURL.lastPathComponent)](\(url))"
             switch field {
             case .front:
