@@ -230,7 +230,6 @@ struct DeckSidebarRow: View {
             }
         } icon: {
             Image(systemName: "folder.fill")
-                .foregroundStyle(Color(hex: deck.colorHex) ?? .blue)
         }
         .contextMenu {
             Button("Rename") {

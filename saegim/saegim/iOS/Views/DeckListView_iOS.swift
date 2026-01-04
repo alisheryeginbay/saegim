@@ -53,12 +53,6 @@ struct DeckRow_iOS: View {
     var body: some View {
         NavigationLink(destination: DeckDetailView_iOS(deck: deck)) {
             HStack(spacing: 12) {
-                // Deck color icon
-                Image(systemName: "folder.fill")
-                    .font(.title2)
-                    .foregroundStyle(Color(hex: deck.colorHex) ?? .blue)
-                    .frame(width: 44, height: 44)
-
                 // Info
                 VStack(alignment: .leading, spacing: 4) {
                     Text(deck.name)

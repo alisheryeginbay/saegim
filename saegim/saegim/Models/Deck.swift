@@ -15,7 +15,6 @@ final class Deck {
     var deckDescription: String
     var createdAt: Date
     var modifiedAt: Date
-    var colorHex: String
 
     @Relationship(deleteRule: .cascade)
     var cards: [Card] = []
@@ -25,13 +24,12 @@ final class Deck {
 
     var parent: Deck?
 
-    init(name: String, description: String = "", colorHex: String = "007AFF", parent: Deck? = nil) {
+    init(name: String, description: String = "", parent: Deck? = nil) {
         self.id = UUID()
         self.name = name
         self.deckDescription = description
         self.createdAt = Date()
         self.modifiedAt = Date()
-        self.colorHex = colorHex
         self.parent = parent
     }
 

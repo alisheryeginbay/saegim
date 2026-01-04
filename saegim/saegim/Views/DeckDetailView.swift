@@ -249,7 +249,7 @@ struct SubdeckCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
         .aspectRatio(1, contentMode: .fit)
-        .background(Color(hex: deck.colorHex) ?? .blue)
+        .background(Color(white: 0.15))
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
     }
