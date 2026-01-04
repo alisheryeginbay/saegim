@@ -267,11 +267,9 @@ struct AnkiImportView: View {
         NSLog("Total media files: %d", mediaFilenames.count)
 
         for filename in mediaFilenames {
-            let ext = (filename as NSString).pathExtension.lowercased()
-            guard MediaStorage.isSupported(extension: ext) else { continue }
             guard let data = collection.media.dataFor(filename: filename) else { continue }
 
-            if let relativePath = MediaStorage.store(data, extension: ext) {
+            if let relativePath = MediaStorage.store(data) {
                 mediaMapping[filename] = MediaStorage.buildURL(relativePath: relativePath)
             }
         }
