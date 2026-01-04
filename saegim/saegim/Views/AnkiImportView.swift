@@ -260,18 +260,6 @@ struct AnkiImportView: View {
     nonisolated private func processCollectionInBackground(_ collection: AnkiCollection) async -> ProcessedData {
         NSLog("=== Processing collection in background ===")
 
-        let fileManager = FileManager.default
-
-        // Setup media directories in Application Support
-        guard let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
-            return ProcessedData(decks: [], cards: [], mediaMapping: [:], primaryDeckName: "Import Failed")
-        }
-
-        let imagesDir = appSupport.appendingPathComponent("Saegim/images", isDirectory: true)
-        let audioDir = appSupport.appendingPathComponent("Saegim/audio", isDirectory: true)
-        try? fileManager.createDirectory(at: imagesDir, withIntermediateDirectories: true)
-        try? fileManager.createDirectory(at: audioDir, withIntermediateDirectories: true)
-
         // Copy media files and build filename mapping
         var mediaMapping: [String: String] = [:]
 
@@ -279,22 +267,10 @@ struct AnkiImportView: View {
         NSLog("Total media files: %d", mediaFilenames.count)
 
         for filename in mediaFilenames {
-            let ext = (filename as NSString).pathExtension.lowercased()
-            let isAudio = ["mp3", "wav", "m4a", "ogg", "flac", "aac", "opus"].contains(ext)
-            let isImage = ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"].contains(ext)
-
-            guard isAudio || isImage else { continue }
             guard let data = collection.media.dataFor(filename: filename) else { continue }
 
-            let uniqueName = "\(UUID().uuidString).\(ext)"
-            let destDir = isAudio ? audioDir : imagesDir
-            let destURL = destDir.appendingPathComponent(uniqueName)
-
-            do {
-                try data.write(to: destURL)
-                mediaMapping[filename] = isAudio ? "saegim://audio/\(uniqueName)" : "saegim://images/\(uniqueName)"
-            } catch {
-                NSLog("Failed to write media: %@", error.localizedDescription)
+            if let relativePath = MediaStorage.store(data) {
+                mediaMapping[filename] = MediaStorage.buildURL(relativePath: relativePath)
             }
         }
 
