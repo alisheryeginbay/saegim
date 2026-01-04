@@ -271,8 +271,9 @@ struct CardEditorPanel: View {
         panel.allowsMultipleSelection = false
 
         if panel.runModal() == .OK, let sourceURL = panel.url {
-            guard let filename = copyMediaToAppStorage(from: sourceURL, type: "images") else { return }
-            let markdown = "![\(sourceURL.lastPathComponent)](saegim://images/\(filename))"
+            guard let relativePath = MediaStorage.store(from: sourceURL, type: .image) else { return }
+            let url = MediaStorage.buildURL(relativePath: relativePath, type: .image)
+            let markdown = "![\(sourceURL.lastPathComponent)](\(url))"
             switch field {
             case .front:
                 card.front += "\n\(markdown)"
@@ -282,39 +283,15 @@ struct CardEditorPanel: View {
         }
     }
 
-    private func copyMediaToAppStorage(from sourceURL: URL, type: String) -> String? {
-        let fileManager = FileManager.default
-        guard let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
-            return nil
-        }
-
-        let mediaDir = appSupport.appendingPathComponent("Saegim/\(type)", isDirectory: true)
-
-        // Create directory if needed
-        try? fileManager.createDirectory(at: mediaDir, withIntermediateDirectories: true)
-
-        // Generate unique filename
-        let ext = sourceURL.pathExtension
-        let uniqueName = "\(UUID().uuidString).\(ext)"
-        let destURL = mediaDir.appendingPathComponent(uniqueName)
-
-        do {
-            try fileManager.copyItem(at: sourceURL, to: destURL)
-            return uniqueName
-        } catch {
-            print("Failed to copy media: \(error)")
-            return nil
-        }
-    }
-
     private func insertAudio(for field: CardField) {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.audio]
         panel.allowsMultipleSelection = false
 
         if panel.runModal() == .OK, let sourceURL = panel.url {
-            guard let filename = copyMediaToAppStorage(from: sourceURL, type: "audio") else { return }
-            let markdown = "[🔊 \(sourceURL.lastPathComponent)](saegim://audio/\(filename))"
+            guard let relativePath = MediaStorage.store(from: sourceURL, type: .audio) else { return }
+            let url = MediaStorage.buildURL(relativePath: relativePath, type: .audio)
+            let markdown = "[🔊 \(sourceURL.lastPathComponent)](\(url))"
             switch field {
             case .front:
                 card.front += "\n\(markdown)"
@@ -484,25 +461,7 @@ struct CardPreviewSheet: View {
 enum MediaURLResolver {
     static func resolve(_ url: URL?) -> URL? {
         guard let url = url else { return nil }
-
-        // Handle saegim:// custom scheme
-        if url.scheme == "saegim" {
-            let fileManager = FileManager.default
-            guard let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
-                return nil
-            }
-            // saegim://images/filename.jpg -> ~/Library/Application Support/Saegim/images/filename.jpg
-            let relativePath = url.host.map { "\($0)/\(url.path.dropFirst())" } ?? url.path.dropFirst().description
-            return appSupport.appendingPathComponent("Saegim/\(relativePath)")
-        }
-
-        // Handle file:// URLs
-        if url.isFileURL {
-            return url
-        }
-
-        // Handle raw paths
-        return URL(fileURLWithPath: url.path)
+        return MediaStorage.resolve(url)
     }
 }
 
