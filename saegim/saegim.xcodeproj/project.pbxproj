@@ -21,17 +21,6 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		74MAC0012F01D0E700518328 /* Exceptions for "saegim" folder in "saegim-macOS" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				iOS/ContentView_iOS.swift,
-				iOS/SaegimApp_iOS.swift,
-				iOS/Views/DeckListView_iOS.swift,
-				iOS/Views/DueTodayView_iOS.swift,
-				iOS/Views/SettingsView_iOS.swift,
-			);
-			target = 74CA28D82EFDF3FE009FA3D0 /* saegim-macOS */;
-		};
 		74IOS0082F01D0E700518328 /* Exceptions for "saegim" folder in "saegim-iOS" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -48,6 +37,17 @@
 				Views/StudySessionView.swift,
 			);
 			target = 74IOS0092F01C0D600518328 /* saegim-iOS */;
+		};
+		74MAC0012F01D0E700518328 /* Exceptions for "saegim" folder in "saegim-macOS" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				iOS/ContentView_iOS.swift,
+				iOS/SaegimApp_iOS.swift,
+				iOS/Views/DeckListView_iOS.swift,
+				iOS/Views/DueTodayView_iOS.swift,
+				iOS/Views/SettingsView_iOS.swift,
+			);
+			target = 74CA28D82EFDF3FE009FA3D0 /* saegim-macOS */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
