@@ -93,6 +93,7 @@ enum MediaStorage {
     /// Returns: relative path in format "ab/abcd1234...xyz.ext" or nil on failure
     static func store(_ data: Data) -> String? {
         guard let format = MediaFormat.detect(from: data) else {
+            NSLog("MediaStorage: Unrecognized media format (size: %d bytes)", data.count)
             return nil
         }
         let fileManager = FileManager.default
