@@ -14,12 +14,6 @@ struct NewDeckSheet: View {
 
     @State private var name = ""
     @State private var description = ""
-    @State private var selectedColor = "007AFF"
-
-    private let colors = [
-        "007AFF", "34C759", "FF9500", "FF3B30",
-        "AF52DE", "5856D6", "FF2D55", "00C7BE"
-    ]
 
     private var title: String {
         if let parent = parentDeck {
@@ -64,44 +58,17 @@ struct NewDeckSheet: View {
                 TextField("Description (optional)", text: $description, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
                     .lineLimit(3...5)
-
-                LabeledContent("Color") {
-                    HStack(spacing: 8) {
-                        ForEach(colors, id: \.self) { colorHex in
-                            Circle()
-                                .fill(Color(hex: colorHex) ?? .blue)
-                                .frame(width: 24, height: 24)
-                                .overlay {
-                                    if selectedColor == colorHex {
-                                        Image(systemName: "checkmark")
-                                            .font(.caption.bold())
-                                            .foregroundStyle(.white)
-                                    }
-                                }
-                                .onTapGesture {
-                                    selectedColor = colorHex
-                                }
-                        }
-                    }
-                }
             }
             .formStyle(.grouped)
             .scrollContentBackground(.hidden)
         }
-        .frame(width: 400, height: 280)
-        .onAppear {
-            // Inherit parent's color by default
-            if let parent = parentDeck {
-                selectedColor = parent.colorHex
-            }
-        }
+        .frame(width: 400, height: 220)
     }
 
     private func createDeck() {
         let deck = Deck(
             name: name,
             description: description,
-            colorHex: selectedColor,
             parent: parentDeck
         )
         modelContext.insert(deck)

@@ -229,23 +229,7 @@ struct DeckSidebarRow: View {
                 Text(deck.name)
             }
         } icon: {
-            Group {
-                if let coverImage = deck.coverImage {
-                    #if os(macOS)
-                    Image(nsImage: coverImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                    #else
-                    Image(uiImage: coverImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                    #endif
-                } else {
-                    Color.gray
-                }
-            }
-            .frame(width: 16, height: 16)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
+            Image(systemName: "folder.fill")
         }
         .contextMenu {
             Button("Rename") {
