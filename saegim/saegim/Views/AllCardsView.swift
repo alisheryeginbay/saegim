@@ -10,8 +10,10 @@ import MarkdownUI
 import AVFoundation
 #if canImport(AppKit)
 import AppKit
+typealias PlatformImage = NSImage
 #else
 import UIKit
+typealias PlatformImage = UIImage
 #endif
 
 struct AllCardsView: View {
