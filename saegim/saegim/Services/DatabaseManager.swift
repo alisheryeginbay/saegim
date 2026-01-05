@@ -141,9 +141,11 @@ final class SupabaseConnector: PowerSyncBackendConnector {
             await ToastManager.shared.showSyncError(error)
         }
 
-        // Only complete batch if all operations succeeded
+        // Always complete the batch to remove successful operations
+        // Failed operations will be retried through the error queue
+        try await batch.complete()
+
         if failedOperations.isEmpty {
-            try await batch.complete()
             await SyncStateManager.shared.setPhase(.completed)
         }
     }
