@@ -179,7 +179,8 @@ final class DatabaseManager: ObservableObject {
         } catch {
             // Sync failed but local database still works
             isConnected = false
-            syncStatus = .offline
+            syncStatus = .error("Connection failed: \(error.localizedDescription)")
+            NSLog("PowerSync connection failed (offline mode): \(error)")
         }
     }
 
