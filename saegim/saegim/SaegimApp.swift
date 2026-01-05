@@ -29,6 +29,10 @@ struct SaegimApp: App {
                     AuthView()
                 }
             }
+            .withToasts()
+            .onAppear {
+                SyncStateManager.shared.startNetworkMonitoring()
+            }
             .onChange(of: supabase.isAuthenticated) { _, isAuthenticated in
                 if isAuthenticated && database.database == nil {
                     Task {
@@ -80,6 +84,15 @@ struct SaegimApp: App {
                         object: nil
                     )
                 }
+
+                Divider()
+
+                Button("Sync Now") {
+                    Task {
+                        try? await DatabaseManager.shared.forceSync()
+                    }
+                }
+                .keyboardShortcut("r", modifiers: [.command])
             }
         }
         #endif

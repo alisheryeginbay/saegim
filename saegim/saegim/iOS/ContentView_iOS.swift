@@ -16,64 +16,81 @@ struct ContentView_iOS: View {
     @State private var showingNewDeck = false
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            // Due Today Tab
-            NavigationStack {
-                DueTodayView_iOS()
-                    .navigationTitle("Due Today")
-            }
-            .tabItem {
-                Label("Study", systemImage: "brain.head.profile")
-            }
-            .tag(0)
+        VStack(spacing: 0) {
+            OfflineBanner()
 
-            // Decks Tab
-            NavigationStack {
-                DeckListView_iOS()
-                    .navigationTitle("Decks")
-                    .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Menu {
-                                Button("New Deck", systemImage: "folder.badge.plus") {
-                                    showingNewDeck = true
-                                }
-                                Divider()
-                                Button("Import from Anki", systemImage: "square.and.arrow.down") {
-                                    showingAnkiImport = true
-                                }
-                                Button("Import from CSV", systemImage: "doc.text") {
-                                    showingCSVImport = true
-                                }
-                            } label: {
-                                Image(systemName: "plus")
+            TabView(selection: $selectedTab) {
+                // Due Today Tab
+                NavigationStack {
+                    DueTodayView_iOS()
+                        .navigationTitle("Due Today")
+                        .toolbar {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                SyncStatusBar()
                             }
                         }
-                    }
-            }
-            .tabItem {
-                Label("Decks", systemImage: "folder")
-            }
-            .tag(1)
+                }
+                .tabItem {
+                    Label("Study", systemImage: "brain.head.profile")
+                }
+                .tag(0)
 
-            // All Cards Tab
-            NavigationStack {
-                AllCardsView_iOS()
-                    .navigationTitle("All Cards")
-            }
-            .tabItem {
-                Label("Cards", systemImage: "rectangle.stack")
-            }
-            .tag(2)
+                // Decks Tab
+                NavigationStack {
+                    DeckListView_iOS()
+                        .navigationTitle("Decks")
+                        .toolbar {
+                            ToolbarItem(placement: .topBarLeading) {
+                                SyncStatusBar()
+                            }
+                            ToolbarItem(placement: .topBarTrailing) {
+                                Menu {
+                                    Button("New Deck", systemImage: "folder.badge.plus") {
+                                        showingNewDeck = true
+                                    }
+                                    Divider()
+                                    Button("Import from Anki", systemImage: "square.and.arrow.down") {
+                                        showingAnkiImport = true
+                                    }
+                                    Button("Import from CSV", systemImage: "doc.text") {
+                                        showingCSVImport = true
+                                    }
+                                } label: {
+                                    Image(systemName: "plus")
+                                }
+                            }
+                        }
+                }
+                .tabItem {
+                    Label("Decks", systemImage: "folder")
+                }
+                .tag(1)
 
-            // Settings Tab
-            NavigationStack {
-                SettingsView_iOS()
-                    .navigationTitle("Settings")
+                // All Cards Tab
+                NavigationStack {
+                    AllCardsView_iOS()
+                        .navigationTitle("All Cards")
+                        .toolbar {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                SyncStatusBar()
+                            }
+                        }
+                }
+                .tabItem {
+                    Label("Cards", systemImage: "rectangle.stack")
+                }
+                .tag(2)
+
+                // Settings Tab
+                NavigationStack {
+                    SettingsView_iOS()
+                        .navigationTitle("Settings")
+                }
+                .tabItem {
+                    Label("Settings", systemImage: "gear")
+                }
+                .tag(3)
             }
-            .tabItem {
-                Label("Settings", systemImage: "gear")
-            }
-            .tag(3)
         }
         .sheet(isPresented: $showingAnkiImport) {
             NavigationStack {
@@ -192,7 +209,19 @@ struct AllCardsView_iOS: View {
                     .padding(.vertical, 4)
                 }
                 .searchable(text: $searchText, prompt: "Search cards")
+                .refreshable {
+                    await performSync()
+                }
             }
+        }
+    }
+
+    private func performSync() async {
+        do {
+            try await DatabaseManager.shared.forceSync()
+            try await repository.fetchDecks()
+        } catch {
+            // Error handled by SyncStateManager
         }
     }
 }

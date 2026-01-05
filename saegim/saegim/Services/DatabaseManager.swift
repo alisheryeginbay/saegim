@@ -98,6 +98,12 @@ final class SupabaseConnector: PowerSyncBackendConnector {
         }
 
         let client = await SupabaseManager.shared.client
+        let totalOperations = batch.crud.count
+        var completedOperations = 0
+        var failedOperations: [SyncError] = []
+
+        // Update phase to uploading
+        await SyncStateManager.shared.setPhase(.uploading(pending: totalOperations, total: totalOperations))
 
         for operation in batch.crud {
             do {
@@ -109,12 +115,41 @@ final class SupabaseConnector: PowerSyncBackendConnector {
                 case .delete:
                     try await deleteRecord(operation, client: client)
                 }
+
+                completedOperations += 1
+                await SyncStateManager.shared.confirmSynced()
+                await SyncStateManager.shared.updateUploadProgress(
+                    completed: completedOperations,
+                    total: totalOperations
+                )
             } catch {
-                throw error
+                // Record the error but continue processing other operations
+                // Mark as non-retryable since batch.complete() removes it from queue
+                let syncError = SyncError(
+                    id: UUID(),
+                    operation: "\(operation.op):\(operation.table):\(operation.id)",
+                    message: error.localizedDescription,
+                    timestamp: Date(),
+                    isRetryable: false
+                )
+                failedOperations.append(syncError)
+                NSLog("Sync operation failed: \(operation.table)/\(operation.id) - \(error)")
             }
         }
 
+        // Report all failed operations
+        for error in failedOperations {
+            await SyncStateManager.shared.reportError(error)
+            await ToastManager.shared.showSyncError(error)
+        }
+
+        // Always complete the batch to remove successful operations
+        // Failed operations will be retried through the error queue
         try await batch.complete()
+
+        if failedOperations.isEmpty {
+            await SyncStateManager.shared.setPhase(.completed)
+        }
     }
 
     private func upsertRecord(_ op: CrudEntry, client: SupabaseClient) async throws {
@@ -180,15 +215,28 @@ final class DatabaseManager: ObservableObject {
         database = db
         connector = SupabaseConnector()
 
+        // Update state to connecting
+        await SyncStateManager.shared.setPhase(.connecting)
+        syncStatus = .syncing
+
         // Connect to PowerSync service (don't fail if sync connection fails)
         do {
             try await db.connect(connector: connector!)
             isConnected = true
             syncStatus = .synced
+            await SyncStateManager.shared.setPhase(.completed)
         } catch {
             // Sync failed but local database still works
             isConnected = false
             syncStatus = .error("Connection failed: \(error.localizedDescription)")
+
+            let syncError = SyncStateManager.createError(
+                operation: "connect",
+                table: "database",
+                id: "powersync",
+                error: error
+            )
+            await SyncStateManager.shared.reportError(syncError)
             NSLog("PowerSync connection failed (offline mode): \(error)")
         }
     }
@@ -205,7 +253,28 @@ final class DatabaseManager: ObservableObject {
     /// Force a sync with the server
     func forceSync() async throws {
         guard let db = database, let connector = connector else { return }
-        try await db.connect(connector: connector)
+
+        await SyncStateManager.shared.setPhase(.connecting)
+        syncStatus = .syncing
+
+        do {
+            try await db.connect(connector: connector)
+            isConnected = true
+            syncStatus = .synced
+            await SyncStateManager.shared.setPhase(.completed)
+        } catch {
+            isConnected = false
+            syncStatus = .error("Sync failed: \(error.localizedDescription)")
+
+            let syncError = SyncStateManager.createError(
+                operation: "sync",
+                table: "database",
+                id: "powersync",
+                error: error
+            )
+            await SyncStateManager.shared.reportError(syncError)
+            throw error
+        }
     }
 
     /// Update sync status manually

@@ -96,6 +96,9 @@ struct ContentView: View {
             }
             .toolbar {
                 ToolbarItem {
+                    SyncStatusBar()
+                }
+                ToolbarItem {
                     Button(action: { showingNewDeck = true }) {
                         Image(systemName: "folder.badge.plus")
                     }
