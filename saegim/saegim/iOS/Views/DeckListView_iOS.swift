@@ -27,7 +27,19 @@ struct DeckListView_iOS: View {
                     }
                     .onDelete(perform: deleteDecks)
                 }
+                .refreshable {
+                    await performSync()
+                }
             }
+        }
+    }
+
+    private func performSync() async {
+        do {
+            try await DatabaseManager.shared.forceSync()
+            try await repository.fetchDecks()
+        } catch {
+            // Error handled by SyncStateManager
         }
     }
 

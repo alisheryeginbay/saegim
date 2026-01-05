@@ -29,6 +29,10 @@ struct SaegimApp_iOS: App {
                     AuthView()
                 }
             }
+            .withToasts()
+            .onAppear {
+                SyncStateManager.shared.startNetworkMonitoring()
+            }
             .onChange(of: supabase.isAuthenticated) { _, isAuthenticated in
                 if isAuthenticated && database.database == nil {
                     Task {
