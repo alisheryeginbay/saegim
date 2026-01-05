@@ -124,11 +124,13 @@ final class SupabaseConnector: PowerSyncBackendConnector {
                 )
             } catch {
                 // Record the error but continue processing other operations
-                let syncError = SyncStateManager.createError(
-                    operation: "\(operation.op)",
-                    table: operation.table,
-                    id: operation.id,
-                    error: error
+                // Mark as non-retryable since batch.complete() removes it from queue
+                let syncError = SyncError(
+                    id: UUID(),
+                    operation: "\(operation.op):\(operation.table):\(operation.id)",
+                    message: error.localizedDescription,
+                    timestamp: Date(),
+                    isRetryable: false
                 )
                 failedOperations.append(syncError)
                 NSLog("Sync operation failed: \(operation.table)/\(operation.id) - \(error)")
