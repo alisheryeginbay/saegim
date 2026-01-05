@@ -155,8 +155,11 @@ final class DataRepository: ObservableObject {
                     rootDecks.append(updatedDeck)
                 }
             } else if deckMap[deck.parentId!] == nil {
-                if let updatedDeck = deckMap[deck.id] {
+                // Orphaned deck - clear invalid parentId and promote to root
+                if var updatedDeck = deckMap[deck.id] {
+                    updatedDeck.parentId = nil
                     rootDecks.append(updatedDeck)
+                    NSLog("Orphaned deck '\(deck.name)' promoted to root (parent \(deck.parentId!.uuidString) not found)")
                 }
             }
         }
