@@ -33,7 +33,7 @@ final class SupabaseManager: ObservableObject {
         )
 
         // Check for existing session on init
-        Task {
+        Task { @MainActor in
             await checkSession()
             isLoading = false
         }
