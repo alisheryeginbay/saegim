@@ -4,17 +4,17 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct CardEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var repository: DataRepository
 
-    let deck: Deck
-    var card: Card?
+    let deck: DeckModel
+    var card: CardModel?
 
     @State private var front = ""
     @State private var back = ""
+    @State private var isSaving = false
     @FocusState private var focusedField: Field?
 
     private var isEditing: Bool { card != nil }
@@ -139,7 +139,7 @@ struct CardEditorSheet: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
-                .disabled(!canSave)
+                .disabled(!canSave || isSaving)
             } else {
                 Text("Press ⌘↵ to save, ⇧⌘↵ to add another")
                     .font(.caption)
@@ -152,14 +152,14 @@ struct CardEditorSheet: View {
                         saveCard(keepOpen: true)
                     }
                     .keyboardShortcut(.return, modifiers: [.command, .shift])
-                    .disabled(!canSave)
+                    .disabled(!canSave || isSaving)
 
                     Button("Add Card") {
                         saveCard()
                     }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
-                    .disabled(!canSave)
+                    .disabled(!canSave || isSaving)
                 }
             }
         }
@@ -171,31 +171,38 @@ struct CardEditorSheet: View {
         let trimmedFront = front.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedBack = back.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        if let card = card {
-            card.front = trimmedFront
-            card.back = trimmedBack
-            card.modifiedAt = Date()
-        } else {
-            let newCard = Card(front: trimmedFront, back: trimmedBack, deck: deck)
-            modelContext.insert(newCard)
-        }
+        isSaving = true
 
-        if keepOpen {
-            front = ""
-            back = ""
-            focusedField = .front
-        } else {
-            dismiss()
+        Task {
+            do {
+                if var existingCard = card {
+                    existingCard.front = trimmedFront
+                    existingCard.back = trimmedBack
+                    try await repository.updateCard(existingCard)
+                } else {
+                    try await repository.createCard(
+                        front: trimmedFront,
+                        back: trimmedBack,
+                        deckId: deck.id
+                    )
+                }
+
+                if keepOpen {
+                    front = ""
+                    back = ""
+                    focusedField = .front
+                    isSaving = false
+                } else {
+                    dismiss()
+                }
+            } catch {
+                print("Failed to save card: \(error)")
+                isSaving = false
+            }
         }
     }
 }
 
 #Preview {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: Deck.self, Card.self, configurations: config)
-    let deck = Deck(name: "Sample")
-    container.mainContext.insert(deck)
-
-    return CardEditorSheet(deck: deck)
-        .modelContainer(container)
+    CardEditorSheet(deck: DeckModel(userId: UUID(), name: "Sample"))
 }

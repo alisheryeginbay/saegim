@@ -7,13 +7,12 @@
 //
 
 import SwiftUI
-import SwiftData
 import UniformTypeIdentifiers
 import AnkiParser
 
 struct AnkiImportView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var repository: DataRepository
 
     @State private var currentProgress: AnkiProgress = .extracting
     @State private var selectedURL: URL?
@@ -217,11 +216,13 @@ struct AnkiImportView: View {
                 // Process collection data on background thread
                 let processedData = await self.processCollectionInBackground(collection)
 
-                // Only SwiftData operations on main thread
+                // Insert data using repository on main thread
                 await MainActor.run {
-                    self.insertProcessedData(processedData)
-                    url.stopAccessingSecurityScopedResource()
-                    self.isRunning = false
+                    Task {
+                        await self.insertProcessedData(processedData)
+                        url.stopAccessingSecurityScopedResource()
+                        self.isRunning = false
+                    }
                 }
             } catch {
                 await MainActor.run {
@@ -233,7 +234,7 @@ struct AnkiImportView: View {
         }
     }
 
-    /// Processed card data ready for SwiftData insertion
+    /// Processed card data ready for database insertion
     private struct ProcessedCard {
         let front: String
         let back: String
@@ -256,7 +257,7 @@ struct AnkiImportView: View {
         let primaryDeckName: String
     }
 
-    /// Process collection data on background thread (no SwiftData)
+    /// Process collection data on background thread (no database access)
     nonisolated private func processCollectionInBackground(_ collection: AnkiCollection) async -> ProcessedData {
         NSLog("=== Processing collection in background ===")
 
@@ -276,7 +277,7 @@ struct AnkiImportView: View {
 
         NSLog("Media mapping: %d entries", mediaMapping.count)
 
-        // Process decks (just extract data, no SwiftData)
+        // Process decks (just extract data, no database)
         var processedDecks: [ProcessedDeck] = []
         let sortedDecks = collection.decks.sorted { a, b in
             a.name.components(separatedBy: "::").count < b.name.components(separatedBy: "::").count
@@ -295,7 +296,7 @@ struct AnkiImportView: View {
             ))
         }
 
-        // Process cards (string processing only, no SwiftData)
+        // Process cards (string processing only, no database)
         var processedCards: [ProcessedCard] = []
         let mediaRegex = try? NSRegularExpression(pattern: #"media:([^\s\)\]]+)"#, options: [])
 
@@ -326,52 +327,68 @@ struct AnkiImportView: View {
         )
     }
 
-    /// Insert processed data into SwiftData (main thread only)
-    private func insertProcessedData(_ data: ProcessedData) {
-        NSLog("=== Inserting into SwiftData ===")
+    /// Insert processed data into database using repository
+    @MainActor
+    private func insertProcessedData(_ data: ProcessedData) async {
+        NSLog("=== Inserting into database ===")
 
         // Build deck hierarchy
-        var deckIdMap: [Int64: Deck] = [:]
-        var deckPathMap: [String: Deck] = [:]
+        var deckIdMap: [Int64: UUID] = [:]  // Anki deck ID -> our deck UUID
+        var deckPathMap: [String: UUID] = [:]  // Full path -> our deck UUID
 
         for processedDeck in data.decks {
-            var parentDeck: Deck? = nil
+            var parentId: UUID? = nil
             if let parentPath = processedDeck.parentPath {
-                parentDeck = deckPathMap[parentPath]
+                parentId = deckPathMap[parentPath]
             }
 
-            let deck = Deck(name: processedDeck.shortName, description: "Imported from Anki")
-            deck.parent = parentDeck
-            modelContext.insert(deck)
-
-            if let parent = parentDeck {
-                parent.subdecks.append(deck)
+            do {
+                let deck = try await repository.createDeck(
+                    name: processedDeck.shortName,
+                    description: "Imported from Anki",
+                    parentId: parentId
+                )
+                deckIdMap[processedDeck.id] = deck.id
+                deckPathMap[processedDeck.name] = deck.id
+            } catch {
+                NSLog("Failed to create deck: %@", error.localizedDescription)
             }
-
-            deckIdMap[processedDeck.id] = deck
-            deckPathMap[processedDeck.name] = deck
         }
 
         // Insert cards
         var totalImportedCards = 0
         for processedCard in data.cards {
-            guard let deck = deckIdMap[processedCard.deckId] else { continue }
+            guard let deckId = deckIdMap[processedCard.deckId] else { continue }
 
-            let card = Card(front: processedCard.front, back: processedCard.back, deck: deck)
-            modelContext.insert(card)
-            totalImportedCards += 1
-        }
-
-        // Delete empty root decks (use cardCount, not recursive totalCardCount)
-        var importedDeckCount = data.decks.count
-        for (_, deck) in deckIdMap {
-            if deck.cardCount == 0 && deck.subdecks.isEmpty && deck.parent == nil {
-                modelContext.delete(deck)
-                importedDeckCount -= 1
+            do {
+                try await repository.createCard(
+                    front: processedCard.front,
+                    back: processedCard.back,
+                    deckId: deckId
+                )
+                totalImportedCards += 1
+            } catch {
+                NSLog("Failed to create card: %@", error.localizedDescription)
             }
         }
 
-        try? modelContext.save()
+        // Delete empty root decks
+        var importedDeckCount = data.decks.count
+        for (ankiId, deckId) in deckIdMap {
+            if let deck = repository.findDeck(id: deckId),
+               deck.cards.isEmpty && deck.subdecks.isEmpty && deck.parentId == nil {
+                // Find the original processed deck to check if it was a root deck
+                if let processedDeck = data.decks.first(where: { $0.id == ankiId }),
+                   processedDeck.parentPath == nil {
+                    do {
+                        try await repository.deleteDeck(deck)
+                        importedDeckCount -= 1
+                    } catch {
+                        NSLog("Failed to delete empty deck: %@", error.localizedDescription)
+                    }
+                }
+            }
+        }
 
         NSLog("=== IMPORT COMPLETE: %d cards, %d decks ===", totalImportedCards, importedDeckCount)
 
@@ -451,5 +468,4 @@ final class ImportProgressHandler: AnkiProgressCallback, @unchecked Sendable {
 
 #Preview {
     AnkiImportView()
-        .modelContainer(for: [Card.self, Deck.self], inMemory: true)
 }

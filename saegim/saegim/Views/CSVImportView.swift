@@ -6,12 +6,11 @@
 //
 
 import SwiftUI
-import SwiftData
 import UniformTypeIdentifiers
 
 struct CSVImportView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var repository: DataRepository
 
     @State private var selectedURL: URL?
     @State private var isImporting = false
@@ -161,45 +160,53 @@ struct CSVImportView: View {
             return
         }
 
-        defer {
-            url.stopAccessingSecurityScopedResource()
-        }
-
-        do {
-            let content = try String(contentsOf: url, encoding: .utf8)
-            let rows = parseCSV(content)
-
-            guard !rows.isEmpty else {
-                importResult = .failure(error: "No valid cards found in CSV")
-                isImporting = false
-                return
+        Task {
+            defer {
+                url.stopAccessingSecurityScopedResource()
             }
 
-            // Create deck
-            let deck = Deck(name: deckName.isEmpty ? "Imported Deck" : deckName, description: "Imported from CSV")
-            modelContext.insert(deck)
+            do {
+                let content = try String(contentsOf: url, encoding: .utf8)
+                let rows = parseCSV(content)
 
-            // Create cards
-            var cardCount = 0
-            for row in rows {
-                guard row.count >= 2 else { continue }
-                let front = row[0].trimmingCharacters(in: .whitespacesAndNewlines)
-                let back = row[1].trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !rows.isEmpty else {
+                    await MainActor.run {
+                        importResult = .failure(error: "No valid cards found in CSV")
+                        isImporting = false
+                    }
+                    return
+                }
 
-                guard !front.isEmpty && !back.isEmpty else { continue }
+                // Create deck
+                let deck = try await repository.createDeck(
+                    name: deckName.isEmpty ? "Imported Deck" : deckName,
+                    description: "Imported from CSV"
+                )
 
-                let card = Card(front: front, back: back, deck: deck)
-                modelContext.insert(card)
-                cardCount += 1
+                // Create cards
+                var cardCount = 0
+                for row in rows {
+                    guard row.count >= 2 else { continue }
+                    let front = row[0].trimmingCharacters(in: .whitespacesAndNewlines)
+                    let back = row[1].trimmingCharacters(in: .whitespacesAndNewlines)
+
+                    guard !front.isEmpty && !back.isEmpty else { continue }
+
+                    try await repository.createCard(front: front, back: back, deckId: deck.id)
+                    cardCount += 1
+                }
+
+                await MainActor.run {
+                    importResult = .success(cardCount: cardCount)
+                    isImporting = false
+                }
+            } catch {
+                await MainActor.run {
+                    importResult = .failure(error: error.localizedDescription)
+                    isImporting = false
+                }
             }
-
-            try modelContext.save()
-            importResult = .success(cardCount: cardCount)
-        } catch {
-            importResult = .failure(error: error.localizedDescription)
         }
-
-        isImporting = false
     }
 
     private func parseCSV(_ content: String) -> [[String]] {

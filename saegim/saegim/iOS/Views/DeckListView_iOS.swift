@@ -6,21 +6,15 @@
 //
 
 import SwiftUI
-import SwiftData
 import AudioToolbox
 import FSRSSwift
 
 struct DeckListView_iOS: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Deck.name) private var decks: [Deck]
-
-    private var rootDecks: [Deck] {
-        decks.filter { $0.parent == nil }
-    }
+    @EnvironmentObject private var repository: DataRepository
 
     var body: some View {
         Group {
-            if decks.isEmpty {
+            if repository.decks.isEmpty {
                 ContentUnavailableView(
                     "No Decks",
                     systemImage: "folder",
@@ -28,7 +22,7 @@ struct DeckListView_iOS: View {
                 )
             } else {
                 List {
-                    ForEach(rootDecks) { deck in
+                    ForEach(repository.decks) { deck in
                         DeckRow_iOS(deck: deck)
                     }
                     .onDelete(perform: deleteDecks)
@@ -39,8 +33,10 @@ struct DeckListView_iOS: View {
 
     private func deleteDecks(at offsets: IndexSet) {
         for index in offsets {
-            let deck = rootDecks[index]
-            modelContext.delete(deck)
+            let deck = repository.decks[index]
+            Task {
+                try? await repository.deleteDeck(deck)
+            }
         }
     }
 }
@@ -48,7 +44,7 @@ struct DeckListView_iOS: View {
 // MARK: - Deck Row
 
 struct DeckRow_iOS: View {
-    let deck: Deck
+    let deck: DeckModel
 
     var body: some View {
         NavigationLink(destination: DeckDetailView_iOS(deck: deck)) {
@@ -59,7 +55,7 @@ struct DeckRow_iOS: View {
                         .font(.headline)
 
                     HStack(spacing: 8) {
-                        Label("\(deck.cardCount)", systemImage: "rectangle.stack")
+                        Label("\(deck.totalCardCount)", systemImage: "rectangle.stack")
                         if deck.dueCount > 0 {
                             Label("\(deck.dueCount) due", systemImage: "clock")
                                 .foregroundStyle(.orange)
@@ -86,14 +82,14 @@ struct DeckRow_iOS: View {
 // MARK: - Deck Detail View
 
 struct DeckDetailView_iOS: View {
-    @Environment(\.modelContext) private var modelContext
-    let deck: Deck
+    @EnvironmentObject private var repository: DataRepository
+    let deck: DeckModel
 
     @State private var showingStudySession = false
     @State private var showingNewCard = false
     @State private var searchText = ""
 
-    private var filteredCards: [Card] {
+    private var filteredCards: [CardModel] {
         if searchText.isEmpty {
             return deck.cards
         }
@@ -108,7 +104,7 @@ struct DeckDetailView_iOS: View {
             // Stats Section
             Section {
                 HStack {
-                    StatCard_iOS(title: "Total", value: "\(deck.cardCount)", icon: "rectangle.stack")
+                    StatCard_iOS(title: "Total", value: "\(deck.totalCardCount)", icon: "rectangle.stack")
                     StatCard_iOS(title: "Due", value: "\(deck.dueCount)", icon: "clock", color: .orange)
                     StatCard_iOS(title: "New", value: "\(deck.newCount)", icon: "sparkles", color: .blue)
                 }
@@ -184,7 +180,9 @@ struct DeckDetailView_iOS: View {
     private func deleteCards(at offsets: IndexSet) {
         for index in offsets {
             let card = filteredCards[index]
-            modelContext.delete(card)
+            Task {
+                try? await repository.deleteCard(card)
+            }
         }
     }
 }
@@ -220,13 +218,14 @@ struct StatCard_iOS: View {
 
 struct StudySessionView_iOS: View {
     @Environment(\.dismiss) private var dismiss
-    let deck: Deck
+    @EnvironmentObject private var repository: DataRepository
+    let deck: DeckModel
 
-    @State private var cardQueue: [Card] = []
+    @State private var cardQueue: [CardModel] = []
     @State private var showingAnswer = false
     @State private var reviewedCount = 0
 
-    private var currentCard: Card? { cardQueue.first }
+    private var currentCard: CardModel? { cardQueue.first }
     private var totalToReview: Int { cardQueue.count + reviewedCount }
 
     var body: some View {
@@ -286,15 +285,21 @@ struct StudySessionView_iOS: View {
         }
     }
 
-    private func reviewCard(_ card: Card, rating: Rating) {
-        card.review(rating: rating)
+    private func reviewCard(_ card: CardModel, rating: Rating) {
+        var updatedCard = card
+        updatedCard.review(rating: rating)
+
+        Task {
+            try? await repository.updateCard(updatedCard)
+        }
+
         AudioServicesPlaySystemSound(rating != .again ? 1057 : 1053)
 
         showingAnswer = false
         cardQueue.removeFirst()
 
         if rating == .again && cardQueue.count > 0 {
-            cardQueue.insert(card, at: min(2, cardQueue.count))
+            cardQueue.insert(updatedCard, at: min(2, cardQueue.count))
         } else {
             reviewedCount += 1
         }
@@ -305,11 +310,12 @@ struct StudySessionView_iOS: View {
 
 struct NewCardView_iOS: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
-    let deck: Deck
+    @EnvironmentObject private var repository: DataRepository
+    let deck: DeckModel
 
     @State private var front = ""
     @State private var back = ""
+    @State private var isCreating = false
 
     var body: some View {
         Form {
@@ -333,12 +339,22 @@ struct NewCardView_iOS: View {
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Add") {
-                    let card = Card(front: front, back: back)
-                    card.deck = deck
-                    modelContext.insert(card)
-                    dismiss()
+                    createCard()
                 }
-                .disabled(front.isEmpty || back.isEmpty)
+                .disabled(front.isEmpty || back.isEmpty || isCreating)
+            }
+        }
+    }
+
+    private func createCard() {
+        isCreating = true
+        Task {
+            do {
+                try await repository.createCard(front: front, back: back, deckId: deck.id)
+                dismiss()
+            } catch {
+                print("Failed to create card: \(error)")
+                isCreating = false
             }
         }
     }
@@ -349,5 +365,4 @@ struct NewCardView_iOS: View {
         DeckListView_iOS()
             .navigationTitle("Decks")
     }
-    .modelContainer(for: [Card.self, Deck.self], inMemory: true)
 }

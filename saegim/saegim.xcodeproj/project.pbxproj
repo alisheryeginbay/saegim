@@ -7,6 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		742139F52F0B1DF100C8998F /* PowerSync in Frameworks */ = {isa = PBXBuildFile; productRef = 742139F42F0B1DF100C8998F /* PowerSync */; };
+		742139F72F0B1DFE00C8998F /* PowerSync in Frameworks */ = {isa = PBXBuildFile; productRef = 742139F62F0B1DFE00C8998F /* PowerSync */; };
+		742139F92F0B1E1400C8998F /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 742139F82F0B1E1400C8998F /* Supabase */; };
+		742139FB2F0B1E1F00C8998F /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 742139FA2F0B1E1F00C8998F /* Supabase */; };
+		742139FF2F0B1E3A00C8998F /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 742139FE2F0B1E3A00C8998F /* Storage */; };
+		74213A032F0B1E4700C8998F /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 74213A022F0B1E4700C8998F /* Storage */; };
+		74213A072F0B213300C8998F /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = 74213A062F0B213300C8998F /* PostgREST */; };
 		74EADF572F00A0B500518328 /* AnkiParser in Frameworks */ = {isa = PBXBuildFile; productRef = 74EADF562F00A0B500518328 /* AnkiParser */; };
 		74FA838C2F00549900E0EDFD /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 74FA838B2F00549900E0EDFD /* MarkdownUI */; };
 		74FSRS012F00B0C600518328 /* FSRSSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 74FSRS002F00B0C600518328 /* FSRSSwift */; };
@@ -68,9 +75,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				742139F92F0B1E1400C8998F /* Supabase in Frameworks */,
 				74FA838C2F00549900E0EDFD /* MarkdownUI in Frameworks */,
+				742139FF2F0B1E3A00C8998F /* Storage in Frameworks */,
 				74EADF572F00A0B500518328 /* AnkiParser in Frameworks */,
 				74FSRS012F00B0C600518328 /* FSRSSwift in Frameworks */,
+				742139F52F0B1DF100C8998F /* PowerSync in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,19 +88,31 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				742139FB2F0B1E1F00C8998F /* Supabase in Frameworks */,
 				74IOS0032F01549900E0EDFD /* MarkdownUI in Frameworks */,
+				74213A032F0B1E4700C8998F /* Storage in Frameworks */,
+				74213A072F0B213300C8998F /* PostgREST in Frameworks */,
 				74IOS0012F01A0B500518328 /* AnkiParser in Frameworks */,
 				74IOS0052F01B0C600518328 /* FSRSSwift in Frameworks */,
+				742139F72F0B1DFE00C8998F /* PowerSync in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		74213A082F0B23F600C8998F /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		74CA28D02EFDF3FE009FA3D0 = {
 			isa = PBXGroup;
 			children = (
 				74CA28DB2EFDF3FE009FA3D0 /* saegim */,
+				74213A082F0B23F600C8998F /* Frameworks */,
 				74CA28DA2EFDF3FE009FA3D0 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -127,6 +149,9 @@
 				74FA838B2F00549900E0EDFD /* MarkdownUI */,
 				74EADF562F00A0B500518328 /* AnkiParser */,
 				74FSRS002F00B0C600518328 /* FSRSSwift */,
+				742139F42F0B1DF100C8998F /* PowerSync */,
+				742139F82F0B1E1400C8998F /* Supabase */,
+				742139FE2F0B1E3A00C8998F /* Storage */,
 			);
 			productName = saegim;
 			productReference = 74CA28D92EFDF3FE009FA3D0 /* Saegim.app */;
@@ -152,6 +177,10 @@
 				74IOS0042F01549900E0EDFD /* MarkdownUI */,
 				74IOS0022F01A0B500518328 /* AnkiParser */,
 				74IOS0062F01B0C600518328 /* FSRSSwift */,
+				742139F62F0B1DFE00C8998F /* PowerSync */,
+				742139FA2F0B1E1F00C8998F /* Supabase */,
+				74213A022F0B1E4700C8998F /* Storage */,
+				74213A062F0B213300C8998F /* PostgREST */,
 			);
 			productName = "saegim-iOS";
 			productReference = 74IOS0072F01C0D600518328 /* Saegim.app */;
@@ -188,6 +217,8 @@
 				74FA838A2F00549900E0EDFD /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
 				74EADF552F00A0B500518328 /* XCLocalSwiftPackageReference "../AnkiParserSwift" */,
 				74FSRS022F00B0C600518328 /* XCLocalSwiftPackageReference "../FSRSSwift" */,
+				742139F22F0B190E00C8998F /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				742139F32F0B196E00C8998F /* XCRemoteSwiftPackageReference "powersync-swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 74CA28DA2EFDF3FE009FA3D0 /* Products */;
@@ -360,7 +391,17 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 84QSJK68P2;
 				ENABLE_APP_SANDBOX = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Saegim;
@@ -393,7 +434,17 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 84QSJK68P2;
 				ENABLE_APP_SANDBOX = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Saegim;
@@ -535,6 +586,22 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		742139F22F0B190E00C8998F /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase-community/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+		742139F32F0B196E00C8998F /* XCRemoteSwiftPackageReference "powersync-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/powersync-ja/powersync-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.8.2;
+			};
+		};
 		74FA838A2F00549900E0EDFD /* XCRemoteSwiftPackageReference "swift-markdown-ui" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/gonzalezreal/swift-markdown-ui";
@@ -546,6 +613,41 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		742139F42F0B1DF100C8998F /* PowerSync */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 742139F32F0B196E00C8998F /* XCRemoteSwiftPackageReference "powersync-swift" */;
+			productName = PowerSync;
+		};
+		742139F62F0B1DFE00C8998F /* PowerSync */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 742139F32F0B196E00C8998F /* XCRemoteSwiftPackageReference "powersync-swift" */;
+			productName = PowerSync;
+		};
+		742139F82F0B1E1400C8998F /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 742139F22F0B190E00C8998F /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+		742139FA2F0B1E1F00C8998F /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 742139F22F0B190E00C8998F /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+		742139FE2F0B1E3A00C8998F /* Storage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 742139F22F0B190E00C8998F /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Storage;
+		};
+		74213A022F0B1E4700C8998F /* Storage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 742139F22F0B190E00C8998F /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Storage;
+		};
+		74213A062F0B213300C8998F /* PostgREST */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 742139F22F0B190E00C8998F /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = PostgREST;
+		};
 		74EADF562F00A0B500518328 /* AnkiParser */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = AnkiParser;

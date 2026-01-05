@@ -6,34 +6,38 @@
 //
 
 import SwiftUI
-import SwiftData
 
 @main
 struct SaegimApp_iOS: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Card.self,
-            Deck.self,
-        ])
-        let modelConfiguration = ModelConfiguration(
-            schema: schema,
-            isStoredInMemoryOnly: false
-        )
-
-        do {
-            return try ModelContainer(
-                for: schema,
-                configurations: [modelConfiguration]
-            )
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
+    @StateObject private var supabase = SupabaseManager.shared
+    @StateObject private var database = DatabaseManager.shared
+    @StateObject private var repository = DataRepository.shared
 
     var body: some Scene {
         WindowGroup {
-            ContentView_iOS()
+            Group {
+                if supabase.isLoading {
+                    // Show loading while checking auth state
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if supabase.isAuthenticated {
+                    ContentView_iOS()
+                        .environmentObject(supabase)
+                        .environmentObject(database)
+                        .environmentObject(repository)
+                } else {
+                    AuthView()
+                }
+            }
+            .onChange(of: supabase.isAuthenticated) { _, isAuthenticated in
+                if isAuthenticated && database.database == nil {
+                    Task {
+                        try? await database.initialize(supabase: supabase)
+                        try? await repository.fetchDecks()
+                        repository.startWatching()
+                    }
+                }
+            }
         }
-        .modelContainer(sharedModelContainer)
     }
 }
