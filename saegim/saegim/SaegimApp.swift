@@ -32,9 +32,13 @@ struct SaegimApp: App {
             .onChange(of: supabase.isAuthenticated) { _, isAuthenticated in
                 if isAuthenticated && database.database == nil {
                     Task {
-                        try? await database.initialize(supabase: supabase)
-                        try? await repository.fetchDecks()
-                        repository.startWatching()
+                        do {
+                            try await database.initialize(supabase: supabase)
+                            try await repository.fetchDecks()
+                            repository.startWatching()
+                        } catch {
+                            NSLog("Failed to initialize after auth: %@", error.localizedDescription)
+                        }
                     }
                 }
             }
