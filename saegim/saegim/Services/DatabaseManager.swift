@@ -68,6 +68,15 @@ final class SupabaseConnector: PowerSyncBackendConnector {
 
     /// Fetch credentials for PowerSync authentication
     override func fetchCredentials() async throws -> PowerSync.PowerSyncCredentials {
+        let supabase = await SupabaseManager.shared
+
+        // Wait for session check to complete (max 5 seconds)
+        var attempts = 0
+        while await supabase.isLoading && attempts < 50 {
+            try await Task.sleep(nanoseconds: 100_000_000)  // 100ms
+            attempts += 1
+        }
+
         let userId = await SupabaseManager.shared.userId
         guard let userId = userId else {
             throw AuthError.notAuthenticated
