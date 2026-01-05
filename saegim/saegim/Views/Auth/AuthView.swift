@@ -9,8 +9,6 @@ import SwiftUI
 
 struct AuthView: View {
     @ObservedObject private var supabase = SupabaseManager.shared
-    @ObservedObject private var database = DatabaseManager.shared
-    @ObservedObject private var repository = DataRepository.shared
 
     @State private var isSignUp = false
     @State private var email = ""
@@ -151,14 +149,7 @@ struct AuthView: View {
                 } else {
                     try await supabase.signIn(email: email, password: password)
                 }
-
-                // Initialize database after successful auth
-                try await database.initialize(supabase: supabase)
-
-                // Fetch initial data
-                try await repository.fetchDecks()
-                repository.startWatching()
-
+                // Database initialization handled by SaegimApp.onChange(isAuthenticated)
             } catch {
                 errorMessage = error.localizedDescription
             }
