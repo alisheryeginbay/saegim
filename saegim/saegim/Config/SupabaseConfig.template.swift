@@ -13,7 +13,9 @@ import Foundation
 
 enum SupabaseConfig {
     /// Supabase project URL (Settings > API > Project URL)
-    static let supabaseURL = URL(string: "https://YOUR_PROJECT.supabase.co")!
+    static let supabaseURL = URL(string: "https://YOUR_PROJECT.supabase.co") ?? {
+        fatalError("Invalid Supabase URL in SupabaseConfig.swift")
+    }()
 
     /// Supabase anonymous/public key (Settings > API > anon/public)
     static let supabaseAnonKey = "YOUR_SUPABASE_ANON_KEY"
