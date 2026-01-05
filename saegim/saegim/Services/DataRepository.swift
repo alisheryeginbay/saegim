@@ -170,17 +170,26 @@ final class DataRepository: ObservableObject {
         watchTask = Task {
             guard let db = database else { return }
 
-            do {
-                for try await _ in try db.watch(
-                    sql: "SELECT COUNT(*) as cnt FROM decks",
-                    parameters: [],
-                    mapper: { cursor in try cursor.getInt(name: "cnt") }
-                ) {
-                    guard !Task.isCancelled else { break }
-                    try? await fetchDecks()
+            var retryCount = 0
+            let maxRetries = 3
+
+            while !Task.isCancelled && retryCount < maxRetries {
+                do {
+                    for try await _ in try db.watch(
+                        sql: "SELECT COUNT(*) as cnt FROM decks",
+                        parameters: [],
+                        mapper: { cursor in try cursor.getInt(name: "cnt") }
+                    ) {
+                        guard !Task.isCancelled else { return }
+                        try? await fetchDecks()
+                        retryCount = 0 // Reset on success
+                    }
+                } catch {
+                    retryCount += 1
+                    if retryCount < maxRetries {
+                        try? await Task.sleep(nanoseconds: UInt64(retryCount) * 1_000_000_000)
+                    }
                 }
-            } catch {
-                // Watch cancelled or error - silent fail
             }
         }
     }
