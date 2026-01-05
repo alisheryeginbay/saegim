@@ -263,13 +263,17 @@ final class DataRepository: ObservableObject {
             throw RepositoryError.notAuthenticated
         }
 
-        _ = try await db.execute(sql: "DELETE FROM cards WHERE deck_id = ?", parameters: [deck.id.uuidString])
-
-        for subdeck in deck.subdecks {
-            try await deleteDeck(subdeck)
+        // Collect all deck IDs (including subdecks) for atomic deletion
+        func collectDeckIds(_ d: DeckModel) -> [String] {
+            [d.id.uuidString] + d.subdecks.flatMap { collectDeckIds($0) }
         }
+        let deckIds = collectDeckIds(deck)
+        let placeholders = deckIds.map { _ in "?" }.joined(separator: ", ")
 
-        _ = try await db.execute(sql: "DELETE FROM decks WHERE id = ?", parameters: [deck.id.uuidString])
+        try await db.writeTransaction { tx in
+            _ = try tx.execute(sql: "DELETE FROM cards WHERE deck_id IN (\(placeholders))", parameters: deckIds)
+            _ = try tx.execute(sql: "DELETE FROM decks WHERE id IN (\(placeholders))", parameters: deckIds)
+        }
 
         try await fetchDecks()
     }
