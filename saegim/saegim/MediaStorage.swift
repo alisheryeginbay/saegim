@@ -186,11 +186,12 @@ enum MediaStorage {
 
         // Check if file already exists
         do {
-            _ = try await client.storage.from(storageBucket).createSignedURL(path: storagePath, expiresIn: 60)
-            // File exists, return the path
-            return storagePath
+            let files = try await client.storage.from(storageBucket).list(path: "\(userId.uuidString)/", options: .init(search: filename))
+            if !files.isEmpty {
+                return storagePath
+            }
         } catch {
-            // File doesn't exist, continue to upload
+            // File doesn't exist or inaccessible, continue to upload
         }
 
         // Upload the file
