@@ -6,12 +6,19 @@
 //
 
 import SwiftUI
+import Supabase
 
 struct SettingsView_iOS: View {
+    @EnvironmentObject private var supabase: SupabaseManager
+    @EnvironmentObject private var database: DatabaseManager
+    @EnvironmentObject private var repository: DataRepository
+
     @AppStorage("dailyNewCards") private var dailyNewCards = 20
     @AppStorage("dailyReviewCards") private var dailyReviewCards = 100
     @AppStorage("showTimer") private var showTimer = true
     @AppStorage("autoPlayAudio") private var autoPlayAudio = false
+
+    @State private var isSigningOut = false
 
     var body: some View {
         Form {
@@ -38,6 +45,42 @@ struct SettingsView_iOS: View {
             Section("Study Session") {
                 Toggle("Show session timer", isOn: $showTimer)
                 Toggle("Auto-play audio", isOn: $autoPlayAudio)
+            }
+
+            Section("Account") {
+                if let user = supabase.currentUser {
+                    HStack {
+                        Text("Email")
+                        Spacer()
+                        Text(user.email ?? "Unknown")
+                            .foregroundStyle(.secondary)
+                    }
+
+                    HStack {
+                        Text("Sync Status")
+                        Spacer()
+                        HStack(spacing: 6) {
+                            Image(systemName: database.syncStatus.systemImage)
+                                .foregroundStyle(syncStatusColor)
+                            Text(database.syncStatus.description)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
+                Button(role: .destructive) {
+                    signOut()
+                } label: {
+                    if isSigningOut {
+                        HStack {
+                            ProgressView()
+                            Text("Signing out...")
+                        }
+                    } else {
+                        Text("Sign Out")
+                    }
+                }
+                .disabled(isSigningOut)
             }
 
             Section("About") {
@@ -73,6 +116,30 @@ struct SettingsView_iOS: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
             }
+        }
+    }
+
+    private var syncStatusColor: Color {
+        switch database.syncStatus {
+        case .synced: return .green
+        case .syncing: return .blue
+        case .offline: return .orange
+        case .error: return .red
+        case .idle: return .secondary
+        }
+    }
+
+    private func signOut() {
+        isSigningOut = true
+        Task {
+            do {
+                repository.stopWatching()
+                await database.disconnect()
+                try await supabase.signOut()
+            } catch {
+                print("Sign out failed: \(error)")
+            }
+            isSigningOut = false
         }
     }
 }

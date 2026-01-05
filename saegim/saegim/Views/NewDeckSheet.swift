@@ -4,16 +4,16 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct NewDeckSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var repository: DataRepository
 
-    var parentDeck: Deck?
+    var parentDeck: DeckModel?
 
     @State private var name = ""
     @State private var description = ""
+    @State private var isCreating = false
 
     private var title: String {
         if let parent = parentDeck {
@@ -43,7 +43,7 @@ struct NewDeckSheet: View {
                     createDeck()
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(name.isEmpty)
+                .disabled(name.isEmpty || isCreating)
             }
             .padding()
             .background(.bar)
@@ -66,23 +66,23 @@ struct NewDeckSheet: View {
     }
 
     private func createDeck() {
-        let deck = Deck(
-            name: name,
-            description: description,
-            parent: parentDeck
-        )
-        modelContext.insert(deck)
-
-        // Explicitly add to parent's subdecks
-        if let parent = parentDeck {
-            parent.subdecks.append(deck)
+        isCreating = true
+        Task {
+            do {
+                try await repository.createDeck(
+                    name: name,
+                    description: description,
+                    parentId: parentDeck?.id
+                )
+                dismiss()
+            } catch {
+                print("Failed to create deck: \(error)")
+                isCreating = false
+            }
         }
-
-        dismiss()
     }
 }
 
 #Preview {
     NewDeckSheet()
-        .modelContainer(for: Deck.self, inMemory: true)
 }

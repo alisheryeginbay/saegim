@@ -4,8 +4,13 @@
 //
 
 import SwiftUI
+import Supabase
 
 struct SettingsView: View {
+    @EnvironmentObject private var supabase: SupabaseManager
+    @EnvironmentObject private var database: DatabaseManager
+    @EnvironmentObject private var repository: DataRepository
+
     @AppStorage("dailyNewCards") private var dailyNewCards = 20
     @AppStorage("dailyReviewCards") private var dailyReviewCards = 100
     @AppStorage("showTimer") private var showTimer = true
@@ -29,12 +34,17 @@ struct SettingsView: View {
                 Label("Study", systemImage: "book")
             }
 
+            AccountSettingsView()
+            .tabItem {
+                Label("Account", systemImage: "person.circle")
+            }
+
             AboutView()
             .tabItem {
                 Label("About", systemImage: "info.circle")
             }
         }
-        .frame(width: 450, height: 300)
+        .frame(width: 450, height: 350)
     }
 }
 
@@ -93,6 +103,73 @@ struct StudySettingsView: View {
     }
 }
 
+struct AccountSettingsView: View {
+    @EnvironmentObject private var supabase: SupabaseManager
+    @EnvironmentObject private var database: DatabaseManager
+    @EnvironmentObject private var repository: DataRepository
+
+    @State private var isSigningOut = false
+
+    var body: some View {
+        Form {
+            Section("Account") {
+                if let user = supabase.currentUser {
+                    LabeledContent("Email", value: user.email ?? "Unknown")
+
+                    HStack {
+                        Text("Sync Status")
+                        Spacer()
+                        HStack(spacing: 6) {
+                            Image(systemName: database.syncStatus.systemImage)
+                                .foregroundStyle(syncStatusColor)
+                            Text(database.syncStatus.description)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+
+            Section {
+                Button(role: .destructive, action: signOut) {
+                    if isSigningOut {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Text("Sign Out")
+                    }
+                }
+                .disabled(isSigningOut)
+            }
+        }
+        .formStyle(.grouped)
+        .padding()
+    }
+
+    private var syncStatusColor: Color {
+        switch database.syncStatus {
+        case .synced: return .green
+        case .syncing: return .blue
+        case .offline: return .orange
+        case .error: return .red
+        case .idle: return .secondary
+        }
+    }
+
+    private func signOut() {
+        isSigningOut = true
+        Task {
+            do {
+                repository.stopWatching()
+                await database.disconnect()
+                try await supabase.signOut()
+            } catch {
+                print("Sign out failed: \(error)")
+            }
+            isSigningOut = false
+        }
+    }
+}
+
 struct AboutView: View {
     var body: some View {
         VStack(spacing: 16) {
@@ -114,10 +191,6 @@ struct AboutView: View {
                 .padding(.horizontal)
 
             Spacer()
-
-            Text("Built with SwiftUI & SwiftData")
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
         .padding()
     }

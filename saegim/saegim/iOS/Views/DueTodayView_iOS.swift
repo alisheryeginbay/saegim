@@ -6,19 +6,23 @@
 //
 
 import SwiftUI
-import SwiftData
 import UIKit
 import AudioToolbox
 import FSRSSwift
 
 struct DueTodayView_iOS: View {
-    @Query private var decks: [Deck]
-    @State private var cardQueue: [Card] = []
+    @EnvironmentObject private var repository: DataRepository
+    @State private var cardQueue: [CardModel] = []
     @State private var showingAnswer = false
     @State private var reviewedCount = 0
     @State private var totalToReview = 0
 
-    private var currentCard: Card? { cardQueue.first }
+    private var currentCard: CardModel? { cardQueue.first }
+
+    private func deckName(for card: CardModel) -> String? {
+        guard let deckId = card.deckId else { return nil }
+        return repository.findDeck(id: deckId)?.name
+    }
 
     var body: some View {
         Group {
@@ -32,8 +36,8 @@ struct DueTodayView_iOS: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                         Spacer()
-                        if let card = currentCard, let deck = card.deck {
-                            Text(deck.name)
+                        if let card = currentCard, let deckName = deckName(for: card) {
+                            Text(deckName)
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
                         }
@@ -72,24 +76,30 @@ struct DueTodayView_iOS: View {
             }
         }
         .onAppear(perform: refreshDueCards)
-        .onChange(of: decks) { _, _ in refreshDueCards() }
+        .onChange(of: repository.allCards.count) { _, _ in refreshDueCards() }
     }
 
     private func refreshDueCards() {
-        cardQueue = decks.flatMap { $0.cards.filter { $0.isDue || $0.state == .new } }.shuffled()
+        cardQueue = repository.allCards.filter { $0.isDue || $0.state == .new }.shuffled()
         totalToReview = cardQueue.count
         reviewedCount = 0
     }
 
-    private func reviewCard(_ card: Card, rating: Rating) {
-        card.review(rating: rating)
+    private func reviewCard(_ card: CardModel, rating: Rating) {
+        var updatedCard = card
+        updatedCard.review(rating: rating)
+
+        Task {
+            try? await repository.updateCard(updatedCard)
+        }
+
         AudioServicesPlaySystemSound(rating != .again ? 1057 : 1053)
 
         showingAnswer = false
         cardQueue.removeFirst()
 
         if rating == .again && cardQueue.count > 0 {
-            cardQueue.insert(card, at: min(2, cardQueue.count))
+            cardQueue.insert(updatedCard, at: min(2, cardQueue.count))
         } else {
             reviewedCount += 1
         }
@@ -99,7 +109,7 @@ struct DueTodayView_iOS: View {
 // MARK: - Card View
 
 struct CardView_iOS: View {
-    let card: Card
+    let card: CardModel
     let showingAnswer: Bool
 
     var body: some View {
@@ -132,8 +142,8 @@ struct CardView_iOS: View {
 // MARK: - Review Buttons
 
 struct ReviewButtons_iOS: View {
-    let card: Card
-    let onReview: (Card, Rating) -> Void
+    let card: CardModel
+    let onReview: (CardModel, Rating) -> Void
 
     var body: some View {
         VStack(spacing: 12) {
@@ -251,5 +261,4 @@ struct AllCaughtUpView_iOS: View {
         DueTodayView_iOS()
             .navigationTitle("Due Today")
     }
-    .modelContainer(for: [Card.self, Deck.self], inMemory: true)
 }

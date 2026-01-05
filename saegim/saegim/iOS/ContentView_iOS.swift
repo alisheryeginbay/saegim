@@ -6,10 +6,9 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct ContentView_iOS: View {
-    @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var repository: DataRepository
 
     @State private var selectedTab = 0
     @State private var showingAnkiImport = false
@@ -88,10 +87,7 @@ struct ContentView_iOS: View {
         }
         .sheet(isPresented: $showingNewDeck) {
             NavigationStack {
-                NewDeckView_iOS { name, description in
-                    let deck = Deck(name: name, description: description)
-                    modelContext.insert(deck)
-                }
+                NewDeckView_iOS()
             }
         }
     }
@@ -101,10 +97,10 @@ struct ContentView_iOS: View {
 
 struct NewDeckView_iOS: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var repository: DataRepository
     @State private var deckName = ""
     @State private var deckDescription = ""
-
-    let onSave: (String, String) -> Void
+    @State private var isCreating = false
 
     var body: some View {
         Form {
@@ -123,10 +119,22 @@ struct NewDeckView_iOS: View {
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Create") {
-                    onSave(deckName, deckDescription)
-                    dismiss()
+                    createDeck()
                 }
-                .disabled(deckName.isEmpty)
+                .disabled(deckName.isEmpty || isCreating)
+            }
+        }
+    }
+
+    private func createDeck() {
+        isCreating = true
+        Task {
+            do {
+                try await repository.createDeck(name: deckName, description: deckDescription)
+                dismiss()
+            } catch {
+                print("Failed to create deck: \(error)")
+                isCreating = false
             }
         }
     }
@@ -135,10 +143,14 @@ struct NewDeckView_iOS: View {
 // MARK: - All Cards View
 
 struct AllCardsView_iOS: View {
-    @Query(sort: \Card.createdAt, order: .reverse) private var cards: [Card]
+    @EnvironmentObject private var repository: DataRepository
     @State private var searchText = ""
 
-    private var filteredCards: [Card] {
+    private var cards: [CardModel] {
+        repository.allCards.sorted { $0.createdAt > $1.createdAt }
+    }
+
+    private var filteredCards: [CardModel] {
         if searchText.isEmpty {
             return cards
         }
@@ -146,6 +158,11 @@ struct AllCardsView_iOS: View {
             $0.front.localizedCaseInsensitiveContains(searchText) ||
             $0.back.localizedCaseInsensitiveContains(searchText)
         }
+    }
+
+    private func deckName(for card: CardModel) -> String? {
+        guard let deckId = card.deckId else { return nil }
+        return repository.findDeck(id: deckId)?.name
     }
 
     var body: some View {
@@ -166,8 +183,8 @@ struct AllCardsView_iOS: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
-                        if let deck = card.deck {
-                            Text(deck.name)
+                        if let deckName = deckName(for: card) {
+                            Text(deckName)
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
                         }
@@ -182,5 +199,4 @@ struct AllCardsView_iOS: View {
 
 #Preview {
     ContentView_iOS()
-        .modelContainer(for: [Card.self, Deck.self], inMemory: true)
 }

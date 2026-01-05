@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import SwiftData
 
 enum NavigationItem: Hashable {
     case dashboard
@@ -17,8 +16,7 @@ enum NavigationItem: Hashable {
 }
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Deck.name) private var decks: [Deck]
+    @EnvironmentObject private var repository: DataRepository
 
     @State private var selectedItem: NavigationItem? = .dueToday
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
@@ -26,24 +24,21 @@ struct ContentView: View {
     @State private var showingNewCard = false
     @State private var showingAnkiImport = false
     @State private var showingCSVImport = false
-    @State private var parentDeckForNewSubdeck: Deck?
+    @State private var parentDeckForNewSubdeck: DeckModel?
 
-    /// Root decks only (no parent)
-    private var rootDecks: [Deck] {
-        decks.filter { $0.parent == nil }
+    /// Root decks (already filtered by repository)
+    private var rootDecks: [DeckModel] {
+        repository.decks
     }
 
-    /// Count of all due cards (includes new cards since they're due immediately)
+    /// Count of all due cards
     private var dueCardCount: Int {
-        decks.reduce(0) { $0 + $1.dueCount }
+        repository.decks.reduce(0) { $0 + $1.totalDueCount }
     }
 
-    /// Find a deck by ID recursively through all decks
-    private func findDeck(by id: UUID) -> Deck? {
-        for deck in decks {
-            if deck.id == id { return deck }
-        }
-        return nil
+    /// Find a deck by ID recursively
+    private func findDeck(by id: UUID) -> DeckModel? {
+        repository.findDeck(id: id)
     }
 
     var body: some View {
@@ -85,7 +80,8 @@ struct ContentView: View {
                         DeckSidebarRow(
                             deck: deck,
                             onAddSubdeck: { parentDeckForNewSubdeck = $0 },
-                            onDelete: deleteDeck
+                            onDelete: deleteDeck,
+                            onRename: renameDeck
                         )
                     }
                 }
@@ -163,9 +159,17 @@ struct ContentView: View {
         }
     }
 
-    private func deleteDeck(_ deck: Deck) {
-        withAnimation {
-            modelContext.delete(deck)
+    private func deleteDeck(_ deck: DeckModel) {
+        Task {
+            try? await repository.deleteDeck(deck)
+        }
+    }
+
+    private func renameDeck(_ deck: DeckModel, newName: String) {
+        var updatedDeck = deck
+        updatedDeck.name = newName
+        Task {
+            try? await repository.updateDeck(updatedDeck)
         }
     }
 
@@ -174,7 +178,7 @@ struct ContentView: View {
               let deck = findDeck(by: deckId) else { return }
 
         // Find the deck's position to select the previous one
-        let sortedDecks = rootDecks.sorted { $0.name < $1.name }
+        let sortedDecks = rootDecks
         if let index = sortedDecks.firstIndex(where: { $0.id == deckId }) {
             if index > 0 {
                 // Select previous deck
@@ -188,8 +192,8 @@ struct ContentView: View {
             }
         }
 
-        withAnimation {
-            modelContext.delete(deck)
+        Task {
+            try? await repository.deleteDeck(deck)
         }
     }
 }
@@ -197,9 +201,10 @@ struct ContentView: View {
 // MARK: - Deck Sidebar Row
 
 struct DeckSidebarRow: View {
-    @Bindable var deck: Deck
-    var onAddSubdeck: (Deck) -> Void
-    var onDelete: (Deck) -> Void
+    let deck: DeckModel
+    var onAddSubdeck: (DeckModel) -> Void
+    var onDelete: (DeckModel) -> Void
+    var onRename: (DeckModel, String) -> Void
 
     @State private var isExpanded = true
     @State private var isRenaming = false
@@ -211,7 +216,7 @@ struct DeckSidebarRow: View {
             if isRenaming {
                 TextField("Deck Name", text: $editedName, onCommit: {
                     if !editedName.isEmpty {
-                        deck.name = editedName
+                        onRename(deck, editedName)
                     }
                     isRenaming = false
                 })
@@ -220,7 +225,7 @@ struct DeckSidebarRow: View {
                 .onChange(of: isTextFieldFocused) { _, focused in
                     if !focused {
                         if !editedName.isEmpty {
-                            deck.name = editedName
+                            onRename(deck, editedName)
                         }
                         isRenaming = false
                     }
@@ -256,7 +261,8 @@ struct DeckSidebarRow: View {
                     DeckSidebarRow(
                         deck: subdeck,
                         onAddSubdeck: onAddSubdeck,
-                        onDelete: onDelete
+                        onDelete: onDelete,
+                        onRename: onRename
                     )
                 }
             } label: {

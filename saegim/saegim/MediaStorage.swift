@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import Supabase
 
 enum MediaFormat: String {
     // Images
@@ -161,5 +162,114 @@ enum MediaStorage {
     /// Builds a saegim:// URL from a relative path.
     static func buildURL(relativePath: String) -> String {
         "saegim://\(mediaDir)/\(relativePath)"
+    }
+
+    // MARK: - Cloud Storage (Supabase)
+
+    private static let storageBucket = "media"
+
+    /// Uploads media to Supabase Storage. Returns the storage path or nil on failure.
+    /// Storage path format: {userId}/{hash}.{ext}
+    static func uploadToCloud(_ data: Data, userId: UUID) async throws -> String? {
+        guard let format = MediaFormat.detect(from: data) else {
+            NSLog("MediaStorage: Unrecognized media format for cloud upload")
+            return nil
+        }
+
+        // Compute hash for filename
+        let hash = SHA256.hash(data: data)
+        let hashString = hash.compactMap { String(format: "%02x", $0) }.joined()
+        let filename = "\(hashString).\(format.rawValue)"
+        let storagePath = "\(userId.uuidString)/\(filename)"
+
+        let client = await SupabaseManager.shared.client
+
+        // Check if file already exists
+        do {
+            _ = try await client.storage.from(storageBucket).createSignedURL(path: storagePath, expiresIn: 60)
+            // File exists, return the path
+            return storagePath
+        } catch {
+            // File doesn't exist, continue to upload
+        }
+
+        // Upload the file
+        do {
+            let mimeType = format.isAudio ? "audio/\(format.rawValue)" : "image/\(format.rawValue)"
+            _ = try await client.storage.from(storageBucket).upload(
+                path: storagePath,
+                file: data,
+                options: FileOptions(contentType: mimeType)
+            )
+            return storagePath
+        } catch {
+            NSLog("MediaStorage: Failed to upload to cloud: %@", error.localizedDescription)
+            throw error
+        }
+    }
+
+    /// Downloads media from Supabase Storage. Returns the local relative path or nil on failure.
+    static func downloadFromCloud(storagePath: String) async throws -> String? {
+        let client = await SupabaseManager.shared.client
+
+        do {
+            let data = try await client.storage.from(storageBucket).download(path: storagePath)
+
+            // Store locally and return the relative path
+            return store(data)
+        } catch {
+            NSLog("MediaStorage: Failed to download from cloud: %@", error.localizedDescription)
+            throw error
+        }
+    }
+
+    /// Gets a signed URL for cloud media. Valid for 1 hour.
+    static func getCloudURL(storagePath: String) async throws -> URL {
+        let client = await SupabaseManager.shared.client
+
+        let signedURL = try await client.storage.from(storageBucket).createSignedURL(
+            path: storagePath,
+            expiresIn: 3600
+        )
+        return signedURL
+    }
+
+    /// Syncs local media to cloud. Call this after storing media locally.
+    static func syncToCloud(relativePath: String, userId: UUID) async throws -> String? {
+        guard let fileURL = resolveLocalPath(relativePath) else { return nil }
+        guard let data = try? Data(contentsOf: fileURL) else { return nil }
+
+        return try await uploadToCloud(data, userId: userId)
+    }
+
+    /// Resolves a relative path to an absolute local file URL.
+    private static func resolveLocalPath(_ relativePath: String) -> URL? {
+        let fileManager = FileManager.default
+        guard let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            return nil
+        }
+        return appSupport.appendingPathComponent("Saegim/\(mediaDir)/\(relativePath)")
+    }
+
+    /// Checks if a file exists locally.
+    static func existsLocally(relativePath: String) -> Bool {
+        guard let url = resolveLocalPath(relativePath) else { return false }
+        return FileManager.default.fileExists(atPath: url.path)
+    }
+
+    /// Ensures media is available locally, downloading from cloud if needed.
+    static func ensureLocal(relativePath: String, storagePath: String) async throws -> URL? {
+        // Check if already exists locally
+        if let localURL = resolveLocalPath(relativePath),
+           FileManager.default.fileExists(atPath: localURL.path) {
+            return localURL
+        }
+
+        // Download from cloud
+        if let downloadedPath = try await downloadFromCloud(storagePath: storagePath) {
+            return resolveLocalPath(downloadedPath)
+        }
+
+        return nil
     }
 }

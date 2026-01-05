@@ -4,12 +4,15 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct DashboardView: View {
-    @Query private var cards: [Card]
+    @EnvironmentObject private var repository: DataRepository
     @State private var stats: (total: Int, due: Int, learned: Int) = (0, 0, 0)
     @State private var activityData: [Date: Int] = [:]
+
+    private var cards: [CardModel] {
+        repository.allCards
+    }
 
     var body: some View {
         ScrollHeader(title: "Dashboard") {
@@ -252,5 +255,4 @@ struct ActivityGrid: View {
 
 #Preview {
     DashboardView()
-        .modelContainer(for: [Card.self, Deck.self], inMemory: true)
 }

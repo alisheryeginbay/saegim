@@ -4,7 +4,6 @@
 //
 
 import SwiftUI
-import SwiftData
 #if canImport(AppKit)
 import AppKit
 #else
@@ -14,13 +13,14 @@ import AudioToolbox
 import FSRSSwift
 
 struct DueTodayView: View {
-    @Query private var decks: [Deck]
-    @State private var cardQueue: [Card] = []
+    @EnvironmentObject private var repository: DataRepository
+
+    @State private var cardQueue: [CardModel] = []
     @State private var showingAnswer = false
     @State private var reviewedCount = 0
     @State private var totalToReview = 0
 
-    private var currentCard: Card? { cardQueue.first }
+    private var currentCard: CardModel? { cardQueue.first }
 
     var body: some View {
         Group {
@@ -62,17 +62,26 @@ struct DueTodayView: View {
             .opacity(0)
         }
         .onAppear(perform: refreshDueCards)
-        .onChange(of: decks) { _, _ in refreshDueCards() }
+        .onChange(of: repository.decks) { _, _ in refreshDueCards() }
     }
 
     private func refreshDueCards() {
-        cardQueue = decks.flatMap { $0.cards.filter { $0.isDue || $0.state == .new } }.shuffled()
+        cardQueue = repository.decks.flatMap { deck in
+            deck.allCards.filter { $0.isDue || $0.state == .new }
+        }.shuffled()
         totalToReview = cardQueue.count
         reviewedCount = 0
     }
 
-    private func reviewCard(_ card: Card, rating: Rating) {
-        card.review(rating: rating)
+    private func reviewCard(_ card: CardModel, rating: Rating) {
+        var updatedCard = card
+        updatedCard.review(rating: rating)
+
+        // Save to database
+        Task {
+            try? await repository.updateCard(updatedCard)
+        }
+
         #if canImport(AppKit)
         NSSound(named: rating != .again ? "Pop" : "Basso")?.play()
         #else
@@ -84,7 +93,7 @@ struct DueTodayView: View {
 
         // Re-insert "Again" cards back into queue for another attempt
         if rating == .again && cardQueue.count > 0 {
-            cardQueue.insert(card, at: min(max(2, cardQueue.count), cardQueue.count))
+            cardQueue.insert(updatedCard, at: min(max(2, cardQueue.count), cardQueue.count))
         } else {
             reviewedCount += 1
         }
@@ -92,7 +101,7 @@ struct DueTodayView: View {
 }
 
 struct CardStackView: View {
-    let cardQueue: [Card]
+    let cardQueue: [CardModel]
     @Binding var showingAnswer: Bool
 
     var body: some View {
@@ -113,7 +122,7 @@ struct CardStackView: View {
 }
 
 struct StackedCardPreview: View {
-    let card: Card
+    let card: CardModel
     let stackIndex: Int
 
     var body: some View {
@@ -144,7 +153,7 @@ struct StackedCardPreview: View {
 }
 
 struct StudyCardView: View {
-    let card: Card
+    let card: CardModel
     @Binding var showingAnswer: Bool
     var onReveal: () -> Void
 
@@ -199,8 +208,8 @@ struct StudyCardView: View {
 }
 
 struct ReviewButtonsRow: View {
-    let card: Card
-    let onReview: (Card, Rating) -> Void
+    let card: CardModel
+    let onReview: (CardModel, Rating) -> Void
 
     var body: some View {
         HStack(spacing: 12) {
@@ -297,7 +306,7 @@ struct DottedGridBackground: View {
 }
 
 #Preview("Study Card") {
-    StudyCardView(card: Card(front: "こんにちは", back: "Hello"), showingAnswer: .constant(true), onReveal: {})
+    StudyCardView(card: CardModel(userId: UUID(), front: "こんにちは", back: "Hello"), showingAnswer: .constant(true), onReveal: {})
 }
 
 #Preview("All Caught Up") {

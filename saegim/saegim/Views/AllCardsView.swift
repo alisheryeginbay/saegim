@@ -4,7 +4,6 @@
 //
 
 import SwiftUI
-import SwiftData
 import UniformTypeIdentifiers
 import MarkdownUI
 import AVFoundation
@@ -17,18 +16,20 @@ typealias PlatformImage = UIImage
 #endif
 
 struct AllCardsView: View {
-    @Query(sort: \Card.createdAt, order: .reverse) private var cards: [Card]
-    @Query(sort: \Deck.name) private var decks: [Deck]
+    @EnvironmentObject private var repository: DataRepository
     @State private var searchText = ""
-    @State private var selectedCard: Card?
+    @State private var selectedCardID: UUID?
     @State private var selectedDeckID: UUID?
-    @State private var filteredCards: [Card] = []
 
-    private func updateFilteredCards() {
+    private var cards: [CardModel] {
+        repository.allCards.sorted { $0.createdAt > $1.createdAt }
+    }
+
+    private var filteredCards: [CardModel] {
         var result = cards
 
         if let deckID = selectedDeckID {
-            result = result.filter { $0.deck?.id == deckID }
+            result = result.filter { $0.deckId == deckID }
         }
 
         if !searchText.isEmpty {
@@ -38,7 +39,17 @@ struct AllCardsView: View {
             }
         }
 
-        filteredCards = result
+        return result
+    }
+
+    private var selectedCard: CardModel? {
+        guard let id = selectedCardID else { return nil }
+        return cards.first { $0.id == id }
+    }
+
+    private func deckName(for card: CardModel) -> String? {
+        guard let deckId = card.deckId else { return nil }
+        return repository.findDeck(id: deckId)?.name
     }
 
     var body: some View {
@@ -47,9 +58,9 @@ struct AllCardsView: View {
                 EmptyAllCardsView()
             } else {
                 HSplitView {
-                    List(filteredCards, selection: $selectedCard) { card in
-                        CardRowView(card: card)
-                            .tag(card)
+                    List(filteredCards, id: \.id, selection: $selectedCardID) { card in
+                        CardRowView(card: card, deckName: deckName(for: card))
+                            .tag(card.id)
                     }
                     .listStyle(.inset(alternatesRowBackgrounds: true))
                     .frame(minWidth: 280, idealWidth: 400, maxHeight: .infinity)
@@ -82,7 +93,7 @@ struct AllCardsView: View {
 
                     Divider()
 
-                    ForEach(decks) { deck in
+                    ForEach(repository.decks) { deck in
                         Button {
                             selectedDeckID = deck.id
                         } label: {
@@ -97,7 +108,7 @@ struct AllCardsView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "folder")
                         if let deckID = selectedDeckID,
-                           let deck = decks.first(where: { $0.id == deckID }) {
+                           let deck = repository.decks.first(where: { $0.id == deckID }) {
                             Text(deck.name)
                                 .lineLimit(1)
                         }
@@ -106,25 +117,16 @@ struct AllCardsView: View {
             }
         }
         .onAppear {
-            updateFilteredCards()
-            if selectedCard == nil, let firstCard = filteredCards.first {
-                selectedCard = firstCard
+            if selectedCardID == nil, let firstCard = filteredCards.first {
+                selectedCardID = firstCard.id
             }
-        }
-        .onChange(of: cards.count) { _, _ in
-            updateFilteredCards()
-        }
-        .onChange(of: searchText) { _, _ in
-            updateFilteredCards()
-        }
-        .onChange(of: selectedDeckID) { _, _ in
-            updateFilteredCards()
         }
     }
 }
 
 struct CardRowView: View {
-    let card: Card
+    let card: CardModel
+    let deckName: String?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -145,8 +147,8 @@ struct CardRowView: View {
 
             Spacer()
 
-            if let deck = card.deck {
-                Text(deck.name)
+            if let deckName = deckName {
+                Text(deckName)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -170,7 +172,10 @@ struct CardRowView: View {
 // MARK: - Card Editor Panel
 
 struct CardEditorPanel: View {
-    @Bindable var card: Card
+    let card: CardModel
+    @EnvironmentObject private var repository: DataRepository
+    @State private var front: String = ""
+    @State private var back: String = ""
     @State private var showingPreview = false
     @State private var showingInfo = false
     @State private var activeField: CardField = .front
@@ -251,19 +256,37 @@ struct CardEditorPanel: View {
 
             // Editor content - both take equal height
             VStack(spacing: 0) {
-                CardSideEditor(title: "Front", text: $card.front)
+                CardSideEditor(title: "Front", text: $front)
                 Divider().padding(.horizontal, 16)
-                CardSideEditor(title: "Back", text: $card.back)
+                CardSideEditor(title: "Back", text: $back)
             }
         }
-        .onChange(of: card.front) { _, _ in
-            card.modifiedAt = Date()
+        .onAppear {
+            front = card.front
+            back = card.back
         }
-        .onChange(of: card.back) { _, _ in
-            card.modifiedAt = Date()
+        .onChange(of: card.id) { _, _ in
+            front = card.front
+            back = card.back
+        }
+        .onChange(of: front) { _, newValue in
+            saveChanges(front: newValue, back: back)
+        }
+        .onChange(of: back) { _, newValue in
+            saveChanges(front: front, back: newValue)
         }
         .sheet(isPresented: $showingPreview) {
-            CardPreviewSheet(card: card)
+            CardPreviewSheet(front: front, back: back)
+        }
+    }
+
+    private func saveChanges(front: String, back: String) {
+        var updatedCard = card
+        updatedCard.front = front
+        updatedCard.back = back
+        updatedCard.modifiedAt = Date()
+        Task {
+            try? await repository.updateCard(updatedCard)
         }
     }
 
@@ -278,9 +301,9 @@ struct CardEditorPanel: View {
             let markdown = "![\(sourceURL.lastPathComponent)](\(url))"
             switch field {
             case .front:
-                card.front += "\n\(markdown)"
+                front += "\n\(markdown)"
             case .back:
-                card.back += "\n\(markdown)"
+                back += "\n\(markdown)"
             }
         }
     }
@@ -296,9 +319,9 @@ struct CardEditorPanel: View {
             let markdown = "[🔊 \(sourceURL.lastPathComponent)](\(url))"
             switch field {
             case .front:
-                card.front += "\n\(markdown)"
+                front += "\n\(markdown)"
             case .back:
-                card.back += "\n\(markdown)"
+                back += "\n\(markdown)"
             }
         }
     }
@@ -307,7 +330,7 @@ struct CardEditorPanel: View {
 // MARK: - Card Info Popover
 
 struct CardInfoPopover: View {
-    let card: Card
+    let card: CardModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -375,7 +398,8 @@ struct CardInfoPopover: View {
 // MARK: - Card Preview Sheet
 
 struct CardPreviewSheet: View {
-    let card: Card
+    let front: String
+    let back: String
     @Environment(\.dismiss) private var dismiss
     @State private var showingAnswer = false
 
@@ -410,7 +434,7 @@ struct CardPreviewSheet: View {
                             Text("Front")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                            MarkdownContentView(content: card.front)
+                            MarkdownContentView(content: front)
                                 .font(.title2)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
@@ -423,7 +447,7 @@ struct CardPreviewSheet: View {
                                 Text("Back")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
-                                MarkdownContentView(content: card.back)
+                                MarkdownContentView(content: back)
                                     .font(.title3)
                                     .foregroundStyle(.secondary)
                                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -774,5 +798,4 @@ struct EmptyAllCardsView: View {
     NavigationStack {
         AllCardsView()
     }
-    .modelContainer(for: [Card.self, Deck.self], inMemory: true)
 }

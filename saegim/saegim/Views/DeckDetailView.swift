@@ -4,11 +4,10 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct DeckDetailView: View {
-    let deck: Deck
-    @Environment(\.modelContext) private var modelContext
+    let deck: DeckModel
+    @EnvironmentObject private var repository: DataRepository
     @Binding var selection: NavigationItem?
 
     @State private var showingAddCard = false
@@ -20,7 +19,7 @@ struct DeckDetailView: View {
         case grid, list
     }
 
-    private var selectedCard: Card? {
+    private var selectedCard: CardModel? {
         guard let id = selectedCardID else { return nil }
         return deck.cards.first { $0.id == id }
     }
@@ -73,13 +72,14 @@ struct DeckDetailView: View {
         }
         .toolbar {
             ToolbarItem(placement: .navigation) {
-                if let parent = deck.parent {
+                if let parentId = deck.parentId,
+                   let _ = repository.findDeck(id: parentId) {
                     Button {
-                        selection = .deck(parent.id)
+                        selection = .deck(parentId)
                     } label: {
                         Image(systemName: "chevron.left")
                     }
-                    .help("Back to \(parent.name)")
+                    .help("Back")
                 } else {
                     Button {
                         selection = .allCards
@@ -130,15 +130,15 @@ struct DeckDetailView: View {
         }
     }
 
-    private func deleteCard(_ card: Card) {
-        withAnimation {
-            modelContext.delete(card)
+    private func deleteCard(_ card: CardModel) {
+        Task {
+            try? await repository.deleteCard(card)
         }
     }
 
-    private func deleteSubdeck(_ subdeck: Deck) {
-        withAnimation {
-            modelContext.delete(subdeck)
+    private func deleteSubdeck(_ subdeck: DeckModel) {
+        Task {
+            try? await repository.deleteDeck(subdeck)
         }
     }
 }
@@ -146,8 +146,7 @@ struct DeckDetailView: View {
 // MARK: - All Decks View
 
 struct AllDecksView: View {
-    @Query(filter: #Predicate<Deck> { $0.parent == nil }, sort: \Deck.name) private var rootDecks: [Deck]
-    @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var repository: DataRepository
     @Binding var selection: NavigationItem?
     @State private var showingNewDeck = false
 
@@ -156,7 +155,7 @@ struct AllDecksView: View {
     var body: some View {
         ScrollHeader(title: "All Decks") {
             LazyVGrid(columns: gridColumns, spacing: 16) {
-                ForEach(rootDecks) { deck in
+                ForEach(repository.decks) { deck in
                     SubdeckCard(deck: deck)
                         .onTapGesture {
                             selection = .deck(deck.id)
@@ -182,9 +181,9 @@ struct AllDecksView: View {
         }
     }
 
-    private func deleteDeck(_ deck: Deck) {
-        withAnimation {
-            modelContext.delete(deck)
+    private func deleteDeck(_ deck: DeckModel) {
+        Task {
+            try? await repository.deleteDeck(deck)
         }
     }
 }
@@ -192,10 +191,10 @@ struct AllDecksView: View {
 // MARK: - Subdecks Grid View
 
 struct SubdecksGridView: View {
-    let deck: Deck
+    let deck: DeckModel
     @Binding var selection: NavigationItem?
     var onAddSubdeck: () -> Void
-    var onDeleteSubdeck: (Deck) -> Void
+    var onDeleteSubdeck: (DeckModel) -> Void
 
     private let gridColumns = Array(repeating: GridItem(.flexible(), spacing: 16), count: 5)
 
@@ -227,7 +226,7 @@ struct SubdecksGridView: View {
 }
 
 struct SubdeckCard: View {
-    let deck: Deck
+    let deck: DeckModel
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -277,11 +276,11 @@ struct NewDeckCard: View {
 // MARK: - Cards Content View
 
 struct CardsContentView: View {
-    let deck: Deck
+    let deck: DeckModel
     let viewMode: DeckDetailView.ViewMode
     var onAddCard: () -> Void
-    var onSelectCard: (Card) -> Void
-    var onDeleteCard: (Card) -> Void
+    var onSelectCard: (CardModel) -> Void
+    var onDeleteCard: (CardModel) -> Void
 
     var body: some View {
         if deck.cards.isEmpty {
@@ -325,10 +324,10 @@ struct EmptyDeckView: View {
 }
 
 struct CardListView: View {
-    let cards: [Card]
+    let cards: [CardModel]
     let viewMode: DeckDetailView.ViewMode
-    var onSelect: (Card) -> Void
-    var onDelete: (Card) -> Void
+    var onSelect: (CardModel) -> Void
+    var onDelete: (CardModel) -> Void
 
     private let gridColumns = [
         GridItem(.adaptive(minimum: 200, maximum: 300), spacing: 16)
@@ -374,7 +373,7 @@ struct CardListView: View {
 }
 
 struct CardGridItem: View {
-    let card: Card
+    let card: CardModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -402,7 +401,7 @@ struct CardGridItem: View {
 }
 
 struct CardListItem: View {
-    let card: Card
+    let card: CardModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -426,22 +425,10 @@ struct CardListItem: View {
 }
 
 #Preview {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: Deck.self, Card.self, configurations: config)
-
-    let deck = Deck(name: "Sample Deck", description: "Test deck")
-    container.mainContext.insert(deck)
-
-    let card1 = Card(front: "What is SwiftUI?", back: "A declarative UI framework")
-    card1.deck = deck
-    container.mainContext.insert(card1)
-
-    let card2 = Card(front: "What is SwiftData?", back: "A persistence framework")
-    card2.deck = deck
-    container.mainContext.insert(card2)
-
-    return NavigationStack {
-        DeckDetailView(deck: deck, selection: .constant(.deck(deck.id)))
+    NavigationStack {
+        DeckDetailView(
+            deck: DeckModel(userId: UUID(), name: "Sample Deck"),
+            selection: .constant(.allDecks)
+        )
     }
-    .modelContainer(container)
 }
