@@ -5,9 +5,9 @@
 //  Centralized sync state tracking with network monitoring and retry logic
 //
 
+import Combine
 import Foundation
 import Network
-import Combine
 
 // MARK: - Sync Types
 
@@ -130,7 +130,6 @@ final class SyncStateManager: ObservableObject {
     private var networkMonitor: NWPathMonitor?
     private var networkQueue = DispatchQueue(label: "com.saegim.networkMonitor")
     private var retryTasks: [UUID: Task<Void, Never>] = [:]
-    private var cancellables = Set<AnyCancellable>()
 
     // Retry configuration
     private let maxRetries = 3
@@ -246,9 +245,7 @@ final class SyncStateManager: ObservableObject {
 
     /// Clear all errors
     func clearErrors() {
-        for (_, task) in retryTasks {
-            task.cancel()
-        }
+        retryTasks.values.forEach { $0.cancel() }
         retryTasks.removeAll()
         errorQueue.removeAll()
 
