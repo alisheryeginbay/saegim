@@ -14,6 +14,7 @@ struct DeckDetailView: View {
     @State private var showingAddSubdeck = false
     @State private var selectedCardID: UUID?
     @State private var viewMode: ViewMode = .grid
+    @State private var newSubdeckName = ""
 
     enum ViewMode {
         case grid, list
@@ -110,8 +111,16 @@ struct DeckDetailView: View {
         .sheet(isPresented: $showingAddCard) {
             CardEditorSheet(deck: deck)
         }
-        .sheet(isPresented: $showingAddSubdeck) {
-            NewDeckSheet(parentDeck: deck)
+        .alert("New Subdeck", isPresented: $showingAddSubdeck) {
+            TextField("Name", text: $newSubdeckName)
+            Button("Cancel", role: .cancel) { newSubdeckName = "" }
+            Button("Create") {
+                createSubdeck()
+                newSubdeckName = ""
+            }
+            .disabled(newSubdeckName.trimmingCharacters(in: .whitespaces).isEmpty)
+        } message: {
+            Text("Create a subdeck in \"\(deck.name)\".")
         }
         .sheet(isPresented: Binding(
             get: { selectedCardID != nil },
@@ -141,6 +150,12 @@ struct DeckDetailView: View {
             try? await repository.deleteDeck(subdeck)
         }
     }
+
+    private func createSubdeck() {
+        Task {
+            try? await repository.createDeck(name: newSubdeckName, description: "", parentId: deck.id)
+        }
+    }
 }
 
 // MARK: - All Decks View
@@ -149,6 +164,7 @@ struct AllDecksView: View {
     @EnvironmentObject private var repository: DataRepository
     @Binding var selection: NavigationItem?
     @State private var showingNewDeck = false
+    @State private var newDeckName = ""
 
     private let gridColumns = Array(repeating: GridItem(.flexible(), spacing: 16), count: 5)
 
@@ -176,14 +192,28 @@ struct AllDecksView: View {
             .frame(maxWidth: 1100, alignment: .center)
             .frame(maxWidth: .infinity, alignment: .center)
         }
-        .sheet(isPresented: $showingNewDeck) {
-            NewDeckSheet()
+        .alert("New Deck", isPresented: $showingNewDeck) {
+            TextField("Name", text: $newDeckName)
+            Button("Cancel", role: .cancel) { newDeckName = "" }
+            Button("Create") {
+                createDeck()
+                newDeckName = ""
+            }
+            .disabled(newDeckName.trimmingCharacters(in: .whitespaces).isEmpty)
+        } message: {
+            Text("Enter a name for your new deck.")
         }
     }
 
     private func deleteDeck(_ deck: DeckModel) {
         Task {
             try? await repository.deleteDeck(deck)
+        }
+    }
+
+    private func createDeck() {
+        Task {
+            try? await repository.createDeck(name: newDeckName, description: "", parentId: nil)
         }
     }
 }

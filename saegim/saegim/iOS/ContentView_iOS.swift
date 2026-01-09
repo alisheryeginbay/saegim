@@ -14,6 +14,7 @@ struct ContentView_iOS: View {
     @State private var showingAnkiImport = false
     @State private var showingCSVImport = false
     @State private var showingNewDeck = false
+    @State private var newDeckName = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -87,57 +88,22 @@ struct ContentView_iOS: View {
                 CSVImportView()
             }
         }
-        .sheet(isPresented: $showingNewDeck) {
-            NavigationStack {
-                NewDeckView_iOS()
+        .alert("New Deck", isPresented: $showingNewDeck) {
+            TextField("Name", text: $newDeckName)
+            Button("Cancel", role: .cancel) { newDeckName = "" }
+            Button("Create") {
+                createDeck()
+                newDeckName = ""
             }
-        }
-    }
-}
-
-// MARK: - New Deck View
-
-struct NewDeckView_iOS: View {
-    @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var repository: DataRepository
-    @State private var deckName = ""
-    @State private var deckDescription = ""
-    @State private var isCreating = false
-
-    var body: some View {
-        Form {
-            Section("Deck Details") {
-                TextField("Name", text: $deckName)
-                TextField("Description (optional)", text: $deckDescription)
-            }
-        }
-        .navigationTitle("New Deck")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") {
-                    dismiss()
-                }
-            }
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Create") {
-                    createDeck()
-                }
-                .disabled(deckName.isEmpty || isCreating)
-            }
+            .disabled(newDeckName.trimmingCharacters(in: .whitespaces).isEmpty)
+        } message: {
+            Text("Enter a name for your new deck.")
         }
     }
 
     private func createDeck() {
-        isCreating = true
         Task {
-            do {
-                try await repository.createDeck(name: deckName, description: deckDescription)
-                dismiss()
-            } catch {
-                print("Failed to create deck: \(error)")
-                isCreating = false
-            }
+            try? await repository.createDeck(name: newDeckName, description: "", parentId: nil)
         }
     }
 }

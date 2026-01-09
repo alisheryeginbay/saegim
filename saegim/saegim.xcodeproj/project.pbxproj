@@ -38,7 +38,6 @@
 				Views/DashboardView.swift,
 				Views/DeckDetailView.swift,
 				Views/DueTodayView.swift,
-				Views/NewDeckSheet.swift,
 				Views/SettingsView.swift,
 				Views/StudySessionView.swift,
 			);

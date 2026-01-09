@@ -24,6 +24,7 @@ struct ContentView: View {
     @State private var showingAnkiImport = false
     @State private var showingCSVImport = false
     @State private var parentDeckForNewSubdeck: DeckModel?
+    @State private var newDeckName = ""
 
     /// Root decks (already filtered by repository)
     private var rootDecks: [DeckModel] {
@@ -129,11 +130,38 @@ struct ContentView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingNewDeck) {
-            NewDeckSheet()
+        .alert("New Deck", isPresented: $showingNewDeck) {
+            TextField("Name", text: $newDeckName)
+            Button("Cancel", role: .cancel) { newDeckName = "" }
+            Button("Create") {
+                createDeck(name: newDeckName, parentId: nil)
+                newDeckName = ""
+            }
+            .disabled(newDeckName.trimmingCharacters(in: .whitespaces).isEmpty)
+        } message: {
+            Text("Enter a name for your new deck.")
         }
-        .sheet(item: $parentDeckForNewSubdeck) { parent in
-            NewDeckSheet(parentDeck: parent)
+        .alert("New Subdeck", isPresented: Binding(
+            get: { parentDeckForNewSubdeck != nil },
+            set: { if !$0 { parentDeckForNewSubdeck = nil } }
+        )) {
+            TextField("Name", text: $newDeckName)
+            Button("Cancel", role: .cancel) {
+                newDeckName = ""
+                parentDeckForNewSubdeck = nil
+            }
+            Button("Create") {
+                if let parent = parentDeckForNewSubdeck {
+                    createDeck(name: newDeckName, parentId: parent.id)
+                }
+                newDeckName = ""
+                parentDeckForNewSubdeck = nil
+            }
+            .disabled(newDeckName.trimmingCharacters(in: .whitespaces).isEmpty)
+        } message: {
+            if let parent = parentDeckForNewSubdeck {
+                Text("Create a subdeck in \"\(parent.name)\".")
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .newDeck)) { _ in
             showingNewDeck = true
@@ -194,6 +222,12 @@ struct ContentView: View {
 
         Task {
             try? await repository.deleteDeck(deck)
+        }
+    }
+
+    private func createDeck(name: String, parentId: UUID?) {
+        Task {
+            try? await repository.createDeck(name: name, description: "", parentId: parentId)
         }
     }
 }
