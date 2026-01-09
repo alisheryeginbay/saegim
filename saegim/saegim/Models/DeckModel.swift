@@ -70,14 +70,19 @@ struct DeckModel: Identifiable, Hashable, Sendable {
         ]
     }
 
-    // MARK: - Hashable (exclude cards and subdecks for performance)
+    // MARK: - Hashable (include properties that affect UI rendering)
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
+        hasher.combine(name)
+        hasher.combine(modifiedAt)
     }
 
     static func == (lhs: DeckModel, rhs: DeckModel) -> Bool {
-        lhs.id == rhs.id
+        lhs.id == rhs.id &&
+        lhs.name == rhs.name &&
+        lhs.parentId == rhs.parentId &&
+        lhs.modifiedAt == rhs.modifiedAt
     }
 
     // MARK: - Computed Properties
@@ -171,5 +176,20 @@ struct DeckModel: Identifiable, Hashable, Sendable {
             count += subdeck.totalNewCount
         }
         return count
+    }
+
+    // MARK: - Conflict Resolution
+
+    /// Merge local and server versions of a deck with field-level resolution
+    /// - All fields: Server wins (LWW based on modifiedAt)
+    /// - Returns: Merged deck and whether there was a conflict
+    static func merge(local: DeckModel, server: DeckModel) -> (merged: DeckModel, hadConflict: Bool) {
+        // For decks, server wins entirely (LWW)
+        // But we track if there was actually a difference
+        let hadConflict = local.name != server.name ||
+                          local.deckDescription != server.deckDescription ||
+                          local.parentId != server.parentId
+
+        return (server, hadConflict)
     }
 }

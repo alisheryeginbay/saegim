@@ -156,10 +156,135 @@ final class SupabaseConnector: PowerSyncBackendConnector {
         var data = op.opData ?? [:]
         data["id"] = op.id
 
+        // Fetch current server state to detect conflicts
+        let response: PostgrestResponse<[[String: AnyJSON]]> = try await client
+            .from(op.table)
+            .select()
+            .eq("id", value: op.id)
+            .execute()
+
+        var resolution: String?
+
+        // Check if record exists on server
+        if let serverRow = response.value.first {
+            // Convert AnyJSON to [String: Any] for comparison
+            let serverData = serverRow.mapValues { $0.value }
+
+            // Detect conflict and merge if needed
+            resolution = applyMergeIfConflict(
+                table: op.table,
+                localData: &data,
+                serverData: serverData
+            )
+        }
+
+        // Upsert the (potentially merged) data
         try await client
             .from(op.table)
             .upsert(data)
             .execute()
+
+        // Log conflict if one was resolved
+        if let resolution = resolution {
+            await SyncStateManager.shared.logConflict(
+                table: op.table,
+                recordId: op.id,
+                resolution: resolution
+            )
+        }
+    }
+
+    /// Detect conflict and apply merge to localData in place
+    /// - Returns: Resolution description if conflict was resolved, nil if no conflict
+    private func applyMergeIfConflict<T>(
+        table: String,
+        localData: inout [String: T],
+        serverData: [String: Any]
+    ) -> String? {
+        let dateFormatter = ISO8601DateFormatter()
+
+        // Parse timestamps
+        let localModified = (localData["modified_at"] as? String)
+            .flatMap { dateFormatter.date(from: $0) }
+        let serverModified = (serverData["modified_at"] as? String)
+            .flatMap { dateFormatter.date(from: $0) }
+
+        // Only conflict if server has data newer than our local version
+        guard let serverDate = serverModified,
+              let localDate = localModified,
+              serverDate > localDate else {
+            return nil  // No conflict - local is newer or equal
+        }
+
+        // Server is newer - we have a conflict, apply merge strategy
+        switch table {
+        case "cards":
+            return applyCardMerge(localData: &localData, serverData: serverData)
+        case "decks":
+            return applyDeckMerge(localData: &localData, serverData: serverData)
+        default:
+            // For other tables, server wins (standard LWW)
+            for (key, value) in serverData {
+                if let typedValue = value as? T {
+                    localData[key] = typedValue
+                }
+            }
+            return "server_wins"
+        }
+    }
+
+    /// Apply card merge in place
+    private func applyCardMerge<T>(
+        localData: inout [String: T],
+        serverData: [String: Any]
+    ) -> String {
+        // Convert to dictionaries for CardModel
+        var localDict: [String: Any] = [:]
+        for (key, value) in localData {
+            localDict[key] = value
+        }
+
+        let localCard = CardModel(row: localDict)
+        let serverCard = CardModel(row: serverData)
+
+        let (merged, resolution) = CardModel.merge(local: localCard, server: serverCard)
+        let dict = merged.toDict()
+
+        // Update localData with merged values
+        for (key, value) in dict {
+            if let v = value, let typedValue = v as? T {
+                localData[key] = typedValue
+            }
+        }
+
+        return resolution.description
+    }
+
+    /// Apply deck merge in place
+    private func applyDeckMerge<T>(
+        localData: inout [String: T],
+        serverData: [String: Any]
+    ) -> String {
+        // Convert to dictionaries for DeckModel
+        var localDict: [String: Any] = [:]
+        for (key, value) in localData {
+            localDict[key] = value
+        }
+
+        let localDeck = DeckModel(row: localDict)
+        let serverDeck = DeckModel(row: serverData)
+
+        let (merged, hadConflict) = DeckModel.merge(local: localDeck, server: serverDeck)
+        let dict = merged.toDict()
+
+        // Update localData with merged values
+        for (key, value) in dict {
+            if let v = value, let typedValue = v as? T {
+                localData[key] = typedValue
+            }
+        }
+
+        return hadConflict ? "server_wins" : "no_change"
     }
 
     private func updateRecord(_ op: CrudEntry, client: SupabaseClient) async throws {

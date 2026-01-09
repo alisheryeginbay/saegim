@@ -72,10 +72,6 @@ struct ContentView: View {
                 }
 
                 Section("Decks") {
-                    NavigationLink(value: NavigationItem.allDecks) {
-                        Label("All", systemImage: "square.grid.2x2")
-                    }
-
                     ForEach(rootDecks) { deck in
                         DeckSidebarRow(
                             deck: deck,

@@ -5,9 +5,9 @@
 //  Centralized sync state tracking with network monitoring and retry logic
 //
 
+import Combine
 import Foundation
 import Network
-import Combine
 
 // MARK: - Sync Types
 
@@ -76,6 +76,23 @@ struct SyncError: Identifiable, Equatable {
     }
 }
 
+/// Represents a conflict that was automatically resolved during sync
+struct ConflictRecord: Identifiable, Equatable {
+    let id: UUID
+    let table: String
+    let recordId: String
+    let resolution: String
+    let timestamp: Date
+
+    init(table: String, recordId: String, resolution: String) {
+        self.id = UUID()
+        self.table = table
+        self.recordId = recordId
+        self.resolution = resolution
+        self.timestamp = Date()
+    }
+}
+
 // MARK: - SyncStateManager
 
 /// Manages sync state, network monitoring, and retry logic
@@ -100,12 +117,19 @@ final class SyncStateManager: ObservableObject {
     /// Queue of failed operations awaiting retry
     @Published private(set) var errorQueue: [SyncError] = []
 
+    /// Number of conflicts auto-resolved this session
+    @Published private(set) var conflictsResolved: Int = 0
+
+    /// History of resolved conflicts (capped at 100)
+    @Published private(set) var conflictHistory: [ConflictRecord] = []
+
     // MARK: - Private Properties
+
+    private let maxConflictHistorySize = 100
 
     private var networkMonitor: NWPathMonitor?
     private var networkQueue = DispatchQueue(label: "com.saegim.networkMonitor")
     private var retryTasks: [UUID: Task<Void, Never>] = [:]
-    private var cancellables = Set<AnyCancellable>()
 
     // Retry configuration
     private let maxRetries = 3
@@ -174,6 +198,27 @@ final class SyncStateManager: ObservableObject {
         pendingChangesCount = 0
     }
 
+    // MARK: - Conflict Tracking
+
+    /// Log a conflict that was automatically resolved
+    func logConflict(table: String, recordId: String, resolution: String) {
+        conflictsResolved += 1
+
+        let record = ConflictRecord(table: table, recordId: recordId, resolution: resolution)
+
+        // Cap history size
+        if conflictHistory.count >= maxConflictHistorySize {
+            conflictHistory.removeFirst()
+        }
+        conflictHistory.append(record)
+    }
+
+    /// Clear conflict history (e.g., on logout)
+    func clearConflictHistory() {
+        conflictsResolved = 0
+        conflictHistory.removeAll()
+    }
+
     /// Update progress during upload
     func updateUploadProgress(completed: Int, total: Int) {
         phase = .uploading(pending: total - completed, total: total)
@@ -200,9 +245,7 @@ final class SyncStateManager: ObservableObject {
 
     /// Clear all errors
     func clearErrors() {
-        for (_, task) in retryTasks {
-            task.cancel()
-        }
+        retryTasks.values.forEach { $0.cancel() }
         retryTasks.removeAll()
         errorQueue.removeAll()
 
