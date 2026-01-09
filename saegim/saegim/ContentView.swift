@@ -78,6 +78,14 @@ struct ContentView: View {
                 }
             }
             .listStyle(.sidebar)
+            .contextMenu(forSelectionType: NavigationItem.self) { items in
+                if items.isEmpty {
+                    // Empty area - show New Deck option
+                    Button("New Deck", systemImage: "folder.badge.plus") {
+                        showingNewDeck = true
+                    }
+                }
+            }
             .frame(minWidth: 220)
             .background {
                 // Hidden button for Cmd+Delete shortcut
