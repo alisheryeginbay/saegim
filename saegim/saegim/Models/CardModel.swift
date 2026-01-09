@@ -231,4 +231,73 @@ struct CardModel: Identifiable, Hashable, Sendable {
         correctReviews = 0
         modifiedAt = Date()
     }
+
+    // MARK: - Conflict Resolution
+
+    /// Merge local and server versions of a card with field-level resolution
+    /// - Content (front/back): Server wins (LWW)
+    /// - FSRS fields: Latest review wins (based on lastReviewDate)
+    /// - Stats: Max value wins (counter semantics)
+    /// - Returns: Merged card and resolution info
+    static func merge(local: CardModel, server: CardModel) -> (merged: CardModel, resolution: MergeResolution) {
+        var merged = server  // Start with server data
+        var resolution = MergeResolution()
+
+        // FSRS fields: Use the version with the later lastReviewDate
+        let localHasLaterReview: Bool = {
+            guard let localReview = local.lastReviewDate else { return false }
+            guard let serverReview = server.lastReviewDate else { return true }
+            return localReview > serverReview
+        }()
+
+        if localHasLaterReview {
+            merged.stability = local.stability
+            merged.difficulty = local.difficulty
+            merged.state = local.state
+            merged.lapses = local.lapses
+            merged.nextReviewDate = local.nextReviewDate
+            merged.lastReviewDate = local.lastReviewDate
+            resolution.fsrsSource = .local
+        } else {
+            resolution.fsrsSource = .server
+        }
+
+        // Stats: Use max values (counter semantics - can only increase)
+        merged.totalReviews = max(local.totalReviews, server.totalReviews)
+        merged.correctReviews = max(local.correctReviews, server.correctReviews)
+        resolution.statsSource = local.totalReviews > server.totalReviews ? .local : .server
+
+        // Content: LWW - server already wins, but track if there was a conflict
+        if local.front != server.front || local.back != server.back {
+            resolution.contentConflict = true
+        }
+
+        return (merged, resolution)
+    }
+}
+
+/// Resolution details from a card merge operation
+struct MergeResolution: Sendable {
+    enum Source: String, Sendable {
+        case local = "local"
+        case server = "server"
+    }
+
+    var fsrsSource: Source = .server
+    var statsSource: Source = .server
+    var contentConflict: Bool = false
+
+    var description: String {
+        var parts: [String] = []
+        if fsrsSource == .local {
+            parts.append("FSRS:local")
+        }
+        if statsSource == .local {
+            parts.append("stats:local")
+        }
+        if contentConflict {
+            parts.append("content:server")
+        }
+        return parts.isEmpty ? "no_conflict" : parts.joined(separator: ",")
+    }
 }

@@ -71,6 +71,57 @@ struct SyncStatusDetailView: View {
                 }
             }
 
+            // Conflict summary
+            if syncState.conflictsResolved > 0 {
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Label("\(syncState.conflictsResolved) conflicts auto-resolved", systemImage: "arrow.triangle.merge")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+
+                        Spacer()
+
+                        Button("Clear") {
+                            syncState.clearConflictHistory()
+                        }
+                        .buttonStyle(.plain)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+
+                    // Show recent conflicts (last 3)
+                    if !syncState.conflictHistory.isEmpty {
+                        ForEach(syncState.conflictHistory.suffix(3)) { conflict in
+                            HStack(spacing: 6) {
+                                Circle()
+                                    .fill(.green.opacity(0.6))
+                                    .frame(width: 6, height: 6)
+
+                                Text("\(conflict.table)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+
+                                Text("•")
+                                    .font(.caption2)
+                                    .foregroundStyle(.quaternary)
+
+                                Text(conflict.resolution)
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+
+                                Spacer()
+
+                                Text(conflict.timestamp, style: .relative)
+                                    .font(.caption2)
+                                    .foregroundStyle(.quaternary)
+                            }
+                        }
+                    }
+                }
+            }
+
             // Error list
             if !syncState.errorQueue.isEmpty {
                 Divider()
