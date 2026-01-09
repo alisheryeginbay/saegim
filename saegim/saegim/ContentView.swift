@@ -9,7 +9,6 @@ import SwiftUI
 
 enum NavigationItem: Hashable {
     case dashboard
-    case allCards
     case allDecks
     case dueToday
     case deck(UUID)
@@ -67,10 +66,6 @@ struct ContentView: View {
                     Label("Dashboard", systemImage: "square.grid.2x2")
                 }
 
-                NavigationLink(value: NavigationItem.allCards) {
-                    Label("All Cards", systemImage: "rectangle.stack")
-                }
-
                 Section("Decks") {
                     ForEach(rootDecks) { deck in
                         DeckSidebarRow(
@@ -106,8 +101,6 @@ struct ContentView: View {
                 switch selectedItem {
                 case .dashboard:
                     DashboardView()
-                case .allCards:
-                    AllCardsView()
                 case .allDecks:
                     AllDecksView(selection: $selectedItem)
                 case .dueToday:

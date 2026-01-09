@@ -82,7 +82,7 @@ struct DeckDetailView: View {
                     .help("Back")
                 } else {
                     Button {
-                        selection = .allCards
+                        selection = .dueToday
                     } label: {
                         Image(systemName: "house")
                     }

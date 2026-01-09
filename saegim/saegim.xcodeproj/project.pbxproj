@@ -33,7 +33,6 @@
 			membershipExceptions = (
 				ContentView.swift,
 				SaegimApp.swift,
-				Views/AllCardsView.swift,
 				Views/CardEditorSheet.swift,
 				Views/Components/ScrollHeader.swift,
 				Views/DashboardView.swift,

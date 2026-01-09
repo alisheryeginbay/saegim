@@ -66,21 +66,6 @@ struct ContentView_iOS: View {
                 }
                 .tag(1)
 
-                // All Cards Tab
-                NavigationStack {
-                    AllCardsView_iOS()
-                        .navigationTitle("All Cards")
-                        .toolbar {
-                            ToolbarItem(placement: .topBarTrailing) {
-                                SyncStatusBar()
-                            }
-                        }
-                }
-                .tabItem {
-                    Label("Cards", systemImage: "rectangle.stack")
-                }
-                .tag(2)
-
                 // Settings Tab
                 NavigationStack {
                     SettingsView_iOS()
@@ -89,7 +74,7 @@ struct ContentView_iOS: View {
                 .tabItem {
                     Label("Settings", systemImage: "gear")
                 }
-                .tag(3)
+                .tag(2)
             }
         }
         .sheet(isPresented: $showingAnkiImport) {
@@ -153,75 +138,6 @@ struct NewDeckView_iOS: View {
                 print("Failed to create deck: \(error)")
                 isCreating = false
             }
-        }
-    }
-}
-
-// MARK: - All Cards View
-
-struct AllCardsView_iOS: View {
-    @EnvironmentObject private var repository: DataRepository
-    @State private var searchText = ""
-
-    private var cards: [CardModel] {
-        repository.allCards.sorted { $0.createdAt > $1.createdAt }
-    }
-
-    private var filteredCards: [CardModel] {
-        if searchText.isEmpty {
-            return cards
-        }
-        return cards.filter {
-            $0.front.localizedCaseInsensitiveContains(searchText) ||
-            $0.back.localizedCaseInsensitiveContains(searchText)
-        }
-    }
-
-    private func deckName(for card: CardModel) -> String? {
-        guard let deckId = card.deckId else { return nil }
-        return repository.findDeck(id: deckId)?.name
-    }
-
-    var body: some View {
-        Group {
-            if cards.isEmpty {
-                ContentUnavailableView(
-                    "No Cards",
-                    systemImage: "rectangle.stack",
-                    description: Text("Import a deck or create cards to get started.")
-                )
-            } else {
-                List(filteredCards) { card in
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(card.front)
-                            .font(.headline)
-                            .lineLimit(2)
-                        Text(card.back)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
-                        if let deckName = deckName(for: card) {
-                            Text(deckName)
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-                .searchable(text: $searchText, prompt: "Search cards")
-                .refreshable {
-                    await performSync()
-                }
-            }
-        }
-    }
-
-    private func performSync() async {
-        do {
-            try await DatabaseManager.shared.forceSync()
-            try await repository.fetchDecks()
-        } catch {
-            // Error handled by SyncStateManager
         }
     }
 }
