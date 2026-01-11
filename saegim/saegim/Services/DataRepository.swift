@@ -361,7 +361,7 @@ final class DataRepository: ObservableObject {
             UPDATE cards SET front = ?, back = ?, deck_id = ?, stability = ?, difficulty = ?,
                             state = ?, lapses = ?, next_review_date = ?, last_review_date = ?,
                             total_reviews = ?, correct_reviews = ?, modified_at = ?
-            WHERE id = ?
+            WHERE LOWER(id) = ?
             """,
             parameters: [
                 card.front,
