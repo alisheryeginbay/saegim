@@ -221,9 +221,9 @@ final class DataRepository: ObservableObject {
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             parameters: [
-                deck.id.uuidString,
-                deck.userId.uuidString,
-                deck.parentId?.uuidString as Any,
+                deck.id.uuidString.lowercased(),
+                deck.userId.uuidString.lowercased(),
+                deck.parentId?.uuidString.lowercased() as Any,
                 deck.name,
                 deck.deckDescription,
                 dateFormatter.string(from: deck.createdAt),
@@ -251,9 +251,9 @@ final class DataRepository: ObservableObject {
             parameters: [
                 deck.name,
                 deck.deckDescription,
-                deck.parentId?.uuidString as Any,
+                deck.parentId?.uuidString.lowercased() as Any,
                 dateFormatter.string(from: Date()),
-                deck.id.uuidString
+                deck.id.uuidString.lowercased()
             ]
         )
 
@@ -266,9 +266,25 @@ final class DataRepository: ObservableObject {
             throw RepositoryError.notAuthenticated
         }
 
+        // Optimistically remove from UI immediately for smooth animation
+        func removeDeck(_ id: UUID, from decks: inout [DeckModel]) -> Bool {
+            if let index = decks.firstIndex(where: { $0.id == id }) {
+                decks.remove(at: index)
+                return true
+            }
+            for i in decks.indices {
+                if removeDeck(id, from: &decks[i].subdecks) {
+                    return true
+                }
+            }
+            return false
+        }
+        _ = removeDeck(deck.id, from: &decks)
+
         // Collect all deck IDs (including subdecks) for atomic deletion
+        // Use lowercased UUIDs to match database format (PostgreSQL stores lowercase)
         func collectDeckIds(_ d: DeckModel) -> [String] {
-            [d.id.uuidString] + d.subdecks.flatMap { collectDeckIds($0) }
+            [d.id.uuidString.lowercased()] + d.subdecks.flatMap { collectDeckIds($0) }
         }
         let deckIds = collectDeckIds(deck)
         let placeholders = deckIds.map { _ in "?" }.joined(separator: ", ")
@@ -312,9 +328,9 @@ final class DataRepository: ObservableObject {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             parameters: [
-                card.id.uuidString,
-                card.userId.uuidString,
-                card.deckId?.uuidString as Any,
+                card.id.uuidString.lowercased(),
+                card.userId.uuidString.lowercased(),
+                card.deckId?.uuidString.lowercased() as Any,
                 card.front,
                 card.back,
                 card.stability,
@@ -350,7 +366,7 @@ final class DataRepository: ObservableObject {
             parameters: [
                 card.front,
                 card.back,
-                card.deckId?.uuidString as Any,
+                card.deckId?.uuidString.lowercased() as Any,
                 card.stability,
                 card.difficulty,
                 card.state.rawValue,
@@ -360,7 +376,7 @@ final class DataRepository: ObservableObject {
                 card.totalReviews,
                 card.correctReviews,
                 dateFormatter.string(from: Date()),
-                card.id.uuidString
+                card.id.uuidString.lowercased()
             ]
         )
     }
@@ -371,7 +387,7 @@ final class DataRepository: ObservableObject {
             throw RepositoryError.notAuthenticated
         }
 
-        _ = try await db.execute(sql: "DELETE FROM cards WHERE id = ?", parameters: [card.id.uuidString])
+        _ = try await db.execute(sql: "DELETE FROM cards WHERE id = ?", parameters: [card.id.uuidString.lowercased()])
         try await fetchDecks()
     }
 
@@ -465,9 +481,9 @@ final class DataRepository: ObservableObject {
                 VALUES (?, ?, ?, ?, ?, 0, 0, 0, 0, ?, 0, 0, ?, ?)
                 """,
                 parameters: [
-                    id.uuidString,
-                    userId.uuidString,
-                    toDeckId.uuidString,
+                    id.uuidString.lowercased(),
+                    userId.uuidString.lowercased(),
+                    toDeckId.uuidString.lowercased(),
                     cardData.front,
                     cardData.back,
                     now,
