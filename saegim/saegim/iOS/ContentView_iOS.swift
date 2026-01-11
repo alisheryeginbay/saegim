@@ -17,66 +17,54 @@ struct ContentView_iOS: View {
     @State private var newDeckName = ""
 
     var body: some View {
-        VStack(spacing: 0) {
-            OfflineBanner()
-
-            TabView(selection: $selectedTab) {
-                // Due Today Tab
-                NavigationStack {
-                    DueTodayView_iOS()
-                        .navigationTitle("Due Today")
-                        .toolbar {
-                            ToolbarItem(placement: .topBarTrailing) {
-                                SyncStatusBar()
-                            }
-                        }
-                }
-                .tabItem {
-                    Label("Study", systemImage: "brain.head.profile")
-                }
-                .tag(0)
-
-                // Decks Tab
-                NavigationStack {
-                    DeckListView_iOS()
-                        .navigationTitle("Decks")
-                        .toolbar {
-                            ToolbarItem(placement: .topBarLeading) {
-                                SyncStatusBar()
-                            }
-                            ToolbarItem(placement: .topBarTrailing) {
-                                Menu {
-                                    Button("New Deck", systemImage: "folder.badge.plus") {
-                                        showingNewDeck = true
-                                    }
-                                    Divider()
-                                    Button("Import from Anki", systemImage: "square.and.arrow.down") {
-                                        showingAnkiImport = true
-                                    }
-                                    Button("Import from CSV", systemImage: "doc.text") {
-                                        showingCSVImport = true
-                                    }
-                                } label: {
-                                    Image(systemName: "plus")
-                                }
-                            }
-                        }
-                }
-                .tabItem {
-                    Label("Decks", systemImage: "folder")
-                }
-                .tag(1)
-
-                // Settings Tab
-                NavigationStack {
-                    SettingsView_iOS()
-                        .navigationTitle("Settings")
-                }
-                .tabItem {
-                    Label("Settings", systemImage: "gear")
-                }
-                .tag(2)
+        TabView(selection: $selectedTab) {
+            // Due Today Tab
+            NavigationStack {
+                DueTodayView_iOS()
+                    .navigationTitle("Due Today")
             }
+            .tabItem {
+                Label("Study", systemImage: "brain.head.profile")
+            }
+            .tag(0)
+
+            // Decks Tab
+            NavigationStack {
+                DeckListView_iOS()
+                    .navigationTitle("Decks")
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Menu {
+                                Button("New Deck", systemImage: "folder.badge.plus") {
+                                    showingNewDeck = true
+                                }
+                                Divider()
+                                Button("Import from Anki", systemImage: "square.and.arrow.down") {
+                                    showingAnkiImport = true
+                                }
+                                Button("Import from CSV", systemImage: "doc.text") {
+                                    showingCSVImport = true
+                                }
+                            } label: {
+                                Image(systemName: "plus")
+                            }
+                        }
+                    }
+            }
+            .tabItem {
+                Label("Decks", systemImage: "folder")
+            }
+            .tag(1)
+
+            // Settings Tab
+            NavigationStack {
+                SettingsView_iOS()
+                    .navigationTitle("Settings")
+            }
+            .tabItem {
+                Label("Settings", systemImage: "gear")
+            }
+            .tag(2)
         }
         .sheet(isPresented: $showingAnkiImport) {
             NavigationStack {

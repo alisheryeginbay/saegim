@@ -20,7 +20,6 @@ struct SettingsView_iOS: View {
     @AppStorage("autoPlayAudio") private var autoPlayAudio = false
 
     @State private var isSigningOut = false
-    @State private var isSyncing = false
 
     var body: some View {
         Form {
@@ -73,16 +72,6 @@ struct SettingsView_iOS: View {
                     }
                 }
 
-                // Pending changes
-                if syncState.pendingChangesCount > 0 {
-                    HStack {
-                        Image(systemName: "arrow.up.circle")
-                            .foregroundStyle(.secondary)
-                        Text("\(syncState.pendingChangesCount) changes pending")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
                 // Network status
                 if !syncState.isOnline {
                     HStack {
@@ -93,9 +82,9 @@ struct SettingsView_iOS: View {
                     }
                 }
 
-                // Sync errors
+                // Sync errors (for troubleshooting)
                 if !syncState.errorQueue.isEmpty {
-                    DisclosureGroup("Sync Issues (\(syncState.errorQueue.count))") {
+                    DisclosureGroup("Issues (\(syncState.errorQueue.count))") {
                         ForEach(syncState.errorQueue.prefix(5)) { error in
                             HStack {
                                 Image(systemName: "exclamationmark.triangle")
@@ -122,29 +111,13 @@ struct SettingsView_iOS: View {
                                 .foregroundStyle(.secondary)
                         }
 
-                        Button("Clear All Errors") {
+                        Button("Clear All") {
                             syncState.clearErrors()
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
                     }
                 }
-
-                // Sync Now button
-                Button {
-                    syncNow()
-                } label: {
-                    HStack {
-                        if isSyncing {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else {
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                        }
-                        Text("Sync Now")
-                    }
-                }
-                .disabled(isSyncing || syncState.phase.isActive)
             }
 
             Section {
@@ -196,14 +169,6 @@ struct SettingsView_iOS: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
             }
-        }
-    }
-
-    private func syncNow() {
-        isSyncing = true
-        Task {
-            defer { isSyncing = false }
-            try? await DatabaseManager.shared.forceSync()
         }
     }
 
