@@ -29,7 +29,12 @@ final class SupabaseManager: ObservableObject {
     private init() {
         client = SupabaseClient(
             supabaseURL: SupabaseConfig.supabaseURL,
-            supabaseKey: SupabaseConfig.supabaseAnonKey
+            supabaseKey: SupabaseConfig.supabaseAnonKey,
+            options: SupabaseClientOptions(
+                auth: .init(
+                    emitLocalSessionAsInitialSession: true
+                )
+            )
         )
 
         // Check for existing session on init
