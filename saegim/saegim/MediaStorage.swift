@@ -180,13 +180,15 @@ enum MediaStorage {
         let hash = SHA256.hash(data: data)
         let hashString = hash.compactMap { String(format: "%02x", $0) }.joined()
         let filename = "\(hashString).\(format.rawValue)"
-        let storagePath = "\(userId.uuidString)/\(filename)"
+        // Use lowercase UUID for consistent storage paths across platforms
+        let userIdPath = userId.uuidString.lowercased()
+        let storagePath = "\(userIdPath)/\(filename)"
 
         let client = await SupabaseManager.shared.client
 
         // Check if file already exists
         do {
-            let files = try await client.storage.from(storageBucket).list(path: "\(userId.uuidString)/", options: .init(search: filename))
+            let files = try await client.storage.from(storageBucket).list(path: "\(userIdPath)/", options: .init(search: filename))
             if !files.isEmpty {
                 return storagePath
             }

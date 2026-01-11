@@ -87,11 +87,13 @@ final class SupabaseConnector: PowerSyncBackendConnector {
         return PowerSync.PowerSyncCredentials(
             endpoint: SupabaseConfig.powerSyncURL,
             token: token,
-            userId: userId.uuidString
+            // Use lowercase UUID for consistency with database storage
+            userId: userId.uuidString.lowercased()
         )
     }
 
     /// Upload local changes to Supabase
+    /// Uses batch operations for efficiency
     override func uploadData(database: any PowerSyncDatabaseProtocol) async throws {
         guard let batch = try await database.getCrudBatch() else {
             return
@@ -105,15 +107,56 @@ final class SupabaseConnector: PowerSyncBackendConnector {
         // Update phase to uploading
         await SyncStateManager.shared.setPhase(.uploading(pending: totalOperations, total: totalOperations))
 
+        // Group PUT operations by table for batch upsert
+        var putsByTable: [String: [CrudEntry]] = [:]
+        var otherOps: [CrudEntry] = []
+
         for operation in batch.crud {
+            if operation.op == .put {
+                putsByTable[operation.table, default: []].append(operation)
+            } else {
+                otherOps.append(operation)
+            }
+        }
+
+        // Batch upsert PUT operations by table
+        for (table, operations) in putsByTable {
+            do {
+                try await batchUpsertRecords(operations, table: table, client: client)
+                completedOperations += operations.count
+                for _ in operations {
+                    await SyncStateManager.shared.confirmSynced()
+                }
+                await SyncStateManager.shared.updateUploadProgress(
+                    completed: completedOperations,
+                    total: totalOperations
+                )
+            } catch {
+                // If batch fails, record error for all operations in the batch
+                for op in operations {
+                    let syncError = SyncError(
+                        id: UUID(),
+                        operation: "put:\(table):\(op.id)",
+                        message: error.localizedDescription,
+                        timestamp: Date(),
+                        isRetryable: false
+                    )
+                    failedOperations.append(syncError)
+                }
+                NSLog("Batch upsert failed for table \(table): \(error)")
+            }
+        }
+
+        // Process PATCH and DELETE operations individually
+        for operation in otherOps {
             do {
                 switch operation.op {
-                case .put:
-                    try await upsertRecord(operation, client: client)
                 case .patch:
                     try await updateRecord(operation, client: client)
                 case .delete:
                     try await deleteRecord(operation, client: client)
+                default:
+                    break
                 }
 
                 completedOperations += 1
@@ -123,8 +166,6 @@ final class SupabaseConnector: PowerSyncBackendConnector {
                     total: totalOperations
                 )
             } catch {
-                // Record the error but continue processing other operations
-                // Mark as non-retryable since batch.complete() removes it from queue
                 let syncError = SyncError(
                     id: UUID(),
                     operation: "\(operation.op):\(operation.table):\(operation.id)",
@@ -144,7 +185,6 @@ final class SupabaseConnector: PowerSyncBackendConnector {
         }
 
         // Always complete the batch to remove successful operations
-        // Failed operations will be retried through the error queue
         try await batch.complete()
 
         if failedOperations.isEmpty {
@@ -152,15 +192,64 @@ final class SupabaseConnector: PowerSyncBackendConnector {
         }
     }
 
+    /// Batch upsert multiple records to a table
+    /// Skips conflict detection for efficiency during bulk imports
+    private func batchUpsertRecords(_ operations: [CrudEntry], table: String, client: SupabaseClient) async throws {
+        guard !operations.isEmpty else { return }
+
+        // Prepare all records with lowercase UUIDs
+        var records: [[String: AnyJSON]] = []
+        for op in operations {
+            var record: [String: AnyJSON] = [:]
+            record["id"] = try AnyJSON(op.id.lowercased())
+
+            if let opData = op.opData {
+                for (key, value) in opData {
+                    // Lowercase UUID fields
+                    if ["user_id", "deck_id", "parent_id"].contains(key),
+                       let strValue = value as? String {
+                        record[key] = try AnyJSON(strValue.lowercased())
+                    } else if let strValue = value as? String {
+                        record[key] = try AnyJSON(strValue)
+                    } else if let intValue = value as? Int {
+                        record[key] = try AnyJSON(intValue)
+                    } else if let doubleValue = value as? Double {
+                        record[key] = try AnyJSON(doubleValue)
+                    } else if let boolValue = value as? Bool {
+                        record[key] = try AnyJSON(boolValue)
+                    } else if value == nil {
+                        record[key] = AnyJSON.null
+                    }
+                }
+            }
+            records.append(record)
+        }
+
+        // Batch upsert all records at once
+        try await client
+            .from(table)
+            .upsert(records)
+            .execute()
+    }
+
     private func upsertRecord(_ op: CrudEntry, client: SupabaseClient) async throws {
         var data = op.opData ?? [:]
-        data["id"] = op.id
+        // Always use lowercase UUIDs to match PostgreSQL storage format
+        let lowercaseId = op.id.lowercased()
+        data["id"] = lowercaseId
 
-        // Fetch current server state to detect conflicts
+        // Lowercase all UUID fields to ensure consistency
+        for key in ["user_id", "deck_id", "parent_id"] {
+            if let value = data[key] as? String {
+                data[key] = value.lowercased()
+            }
+        }
+
+        // Fetch current server state to detect conflicts (use lowercase ID)
         let response: PostgrestResponse<[[String: AnyJSON]]> = try await client
             .from(op.table)
             .select()
-            .eq("id", value: op.id)
+            .eq("id", value: lowercaseId)
             .execute()
 
         var resolution: String?
@@ -188,7 +277,7 @@ final class SupabaseConnector: PowerSyncBackendConnector {
         if let resolution = resolution {
             await SyncStateManager.shared.logConflict(
                 table: op.table,
-                recordId: op.id,
+                recordId: lowercaseId,
                 resolution: resolution
             )
         }
@@ -288,20 +377,30 @@ final class SupabaseConnector: PowerSyncBackendConnector {
     }
 
     private func updateRecord(_ op: CrudEntry, client: SupabaseClient) async throws {
-        guard let data = op.opData else { return }
+        guard var data = op.opData else { return }
+
+        // Lowercase all UUID fields to match PostgreSQL storage format
+        let lowercaseId = op.id.lowercased()
+        data["id"] = lowercaseId
+        for key in ["user_id", "deck_id", "parent_id"] {
+            if let value = data[key] as? String {
+                data[key] = value.lowercased()
+            }
+        }
 
         try await client
             .from(op.table)
             .update(data)
-            .eq("id", value: op.id)
+            .eq("id", value: lowercaseId)
             .execute()
     }
 
     private func deleteRecord(_ op: CrudEntry, client: SupabaseClient) async throws {
+        // Use lowercase ID to match PostgreSQL storage format
         try await client
             .from(op.table)
             .delete()
-            .eq("id", value: op.id)
+            .eq("id", value: op.id.lowercased())
             .execute()
     }
 }
@@ -434,6 +533,17 @@ enum SyncStatus {
         case .synced: return "checkmark.icloud"
         case .offline: return "icloud.slash"
         case .error: return "exclamationmark.icloud"
+        }
+    }
+}
+
+// MARK: - Array Chunking Extension
+
+extension Array {
+    /// Split array into chunks of specified size
+    func chunked(into size: Int) -> [[Element]] {
+        stride(from: 0, to: count, by: size).map {
+            Array(self[$0..<Swift.min($0 + size, count)])
         }
     }
 }

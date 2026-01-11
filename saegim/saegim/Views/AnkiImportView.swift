@@ -328,48 +328,69 @@ struct AnkiImportView: View {
     }
 
     /// Insert processed data into database using repository
+    /// Uses batch operations for efficient import
     @MainActor
     private func insertProcessedData(_ data: ProcessedData) async {
-        NSLog("=== Inserting into database ===")
+        NSLog("=== Inserting into database (batch mode) ===")
 
-        // Build deck hierarchy
+        // Pre-generate UUIDs for all decks and build mappings
         var deckIdMap: [Int64: UUID] = [:]  // Anki deck ID -> our deck UUID
         var deckPathMap: [String: UUID] = [:]  // Full path -> our deck UUID
 
+        // First pass: assign UUIDs to all decks
+        for processedDeck in data.decks {
+            let newId = UUID()
+            deckIdMap[processedDeck.id] = newId
+            deckPathMap[processedDeck.name] = newId
+        }
+
+        // Build deck tuples for batch insert (order matters for parent references)
+        var decksToCreate: [(name: String, description: String, parentId: UUID?)] = []
         for processedDeck in data.decks {
             var parentId: UUID? = nil
             if let parentPath = processedDeck.parentPath {
                 parentId = deckPathMap[parentPath]
             }
-
-            do {
-                let deck = try await repository.createDeck(
-                    name: processedDeck.shortName,
-                    description: "Imported from Anki",
-                    parentId: parentId
-                )
-                deckIdMap[processedDeck.id] = deck.id
-                deckPathMap[processedDeck.name] = deck.id
-            } catch {
-                NSLog("Failed to create deck: %@", error.localizedDescription)
-            }
+            decksToCreate.append((
+                name: processedDeck.shortName,
+                description: "Imported from Anki",
+                parentId: parentId
+            ))
         }
 
-        // Insert cards
-        var totalImportedCards = 0
+        // Batch insert all decks
+        do {
+            let createdDecks = try await repository.createDecks(decksToCreate)
+            // Update mappings with actual created deck IDs
+            for (index, processedDeck) in data.decks.enumerated() {
+                if index < createdDecks.count {
+                    deckIdMap[processedDeck.id] = createdDecks[index].id
+                    deckPathMap[processedDeck.name] = createdDecks[index].id
+                }
+            }
+            NSLog("Batch inserted %d decks", createdDecks.count)
+        } catch {
+            NSLog("Failed to batch create decks: %@", error.localizedDescription)
+        }
+
+        // Build card tuples for batch insert
+        var cardsToCreate: [(front: String, back: String, deckId: UUID)] = []
         for processedCard in data.cards {
             guard let deckId = deckIdMap[processedCard.deckId] else { continue }
+            cardsToCreate.append((
+                front: processedCard.front,
+                back: processedCard.back,
+                deckId: deckId
+            ))
+        }
 
-            do {
-                try await repository.createCard(
-                    front: processedCard.front,
-                    back: processedCard.back,
-                    deckId: deckId
-                )
-                totalImportedCards += 1
-            } catch {
-                NSLog("Failed to create card: %@", error.localizedDescription)
-            }
+        // Batch insert all cards
+        var totalImportedCards = 0
+        do {
+            totalImportedCards = try await repository.createCards(cardsToCreate)
+            NSLog("Batch inserted %d cards", totalImportedCards)
+        } catch {
+            NSLog("Failed to batch create cards: %@", error.localizedDescription)
         }
 
         // Delete empty root decks

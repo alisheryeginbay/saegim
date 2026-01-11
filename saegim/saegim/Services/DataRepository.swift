@@ -235,6 +235,49 @@ final class DataRepository: ObservableObject {
         return deck
     }
 
+    /// Create multiple decks in a single transaction (for batch imports)
+    /// Returns the created DeckModels in the same order as input
+    @discardableResult
+    func createDecks(_ decksToCreate: [(name: String, description: String, parentId: UUID?)]) async throws -> [DeckModel] {
+        guard let db = database, let userId = userId else {
+            throw RepositoryError.notAuthenticated
+        }
+
+        // Create all deck models upfront (on MainActor) before entering transaction
+        let decks = decksToCreate.map { deckData in
+            DeckModel(userId: userId, parentId: deckData.parentId, name: deckData.name, description: deckData.description)
+        }
+
+        // Prepare all parameters upfront to avoid capturing non-Sendable types in closure
+        let dateFormatter = ISO8601DateFormatter()
+        let deckParams: [[Any]] = decks.map { deck in
+            [
+                deck.id.uuidString.lowercased(),
+                deck.userId.uuidString.lowercased(),
+                deck.parentId?.uuidString.lowercased() as Any,
+                deck.name,
+                deck.deckDescription,
+                dateFormatter.string(from: deck.createdAt),
+                dateFormatter.string(from: deck.modifiedAt)
+            ]
+        }
+
+        try await db.writeTransaction { tx in
+            for params in deckParams {
+                _ = try tx.execute(
+                    sql: """
+                    INSERT INTO decks (id, user_id, parent_id, name, description, created_at, modified_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    parameters: params
+                )
+            }
+        }
+
+        try await fetchDecks()
+        return decks
+    }
+
     /// Update an existing deck
     func updateDeck(_ deck: DeckModel) async throws {
         guard let db = database else {
@@ -346,6 +389,57 @@ final class DataRepository: ObservableObject {
         )
 
         try await fetchDecks()
+    }
+
+    /// Create multiple cards in a single transaction (for batch imports)
+    /// This is much more efficient than calling createCard repeatedly
+    func createCards(_ cardsToCreate: [(front: String, back: String, deckId: UUID)]) async throws -> Int {
+        guard let db = database, let userId = userId else {
+            throw RepositoryError.notAuthenticated
+        }
+
+        // Create all card models upfront (on MainActor) before entering transaction
+        let cards = cardsToCreate.map { cardData in
+            CardModel(userId: userId, deckId: cardData.deckId, front: cardData.front, back: cardData.back)
+        }
+
+        // Prepare all parameters upfront to avoid capturing non-Sendable types in closure
+        let dateFormatter = ISO8601DateFormatter()
+        let cardParams: [[Any]] = cards.map { card in
+            [
+                card.id.uuidString.lowercased(),
+                card.userId.uuidString.lowercased(),
+                card.deckId?.uuidString.lowercased() as Any,
+                card.front,
+                card.back,
+                card.stability,
+                card.difficulty,
+                card.state.rawValue,
+                card.lapses,
+                dateFormatter.string(from: card.nextReviewDate),
+                card.totalReviews,
+                card.correctReviews,
+                dateFormatter.string(from: card.createdAt),
+                dateFormatter.string(from: card.modifiedAt)
+            ]
+        }
+
+        try await db.writeTransaction { tx in
+            for params in cardParams {
+                _ = try tx.execute(
+                    sql: """
+                    INSERT INTO cards (id, user_id, deck_id, front, back, stability, difficulty, state,
+                                      lapses, next_review_date, total_reviews, correct_reviews,
+                                      created_at, modified_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    parameters: params
+                )
+            }
+        }
+
+        try await fetchDecks()
+        return cards.count
     }
 
     /// Update an existing card

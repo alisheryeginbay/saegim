@@ -57,12 +57,13 @@ struct DeckModel: Identifiable, Hashable, Sendable {
     }
 
     /// Convert to dictionary for database insertion
+    /// Uses lowercase UUIDs to match PostgreSQL storage format
     func toDict() -> [String: Any?] {
         let dateFormatter = ISO8601DateFormatter()
         return [
-            "id": id.uuidString,
-            "user_id": userId.uuidString,
-            "parent_id": parentId?.uuidString,
+            "id": id.uuidString.lowercased(),
+            "user_id": userId.uuidString.lowercased(),
+            "parent_id": parentId?.uuidString.lowercased(),
             "name": name,
             "description": deckDescription,
             "created_at": dateFormatter.string(from: createdAt),

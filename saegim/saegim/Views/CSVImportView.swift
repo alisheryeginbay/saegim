@@ -183,18 +183,19 @@ struct CSVImportView: View {
                     description: "Imported from CSV"
                 )
 
-                // Create cards
-                var cardCount = 0
+                // Build card tuples for batch insert
+                var cardsToCreate: [(front: String, back: String, deckId: UUID)] = []
                 for row in rows {
                     guard row.count >= 2 else { continue }
                     let front = row[0].trimmingCharacters(in: .whitespacesAndNewlines)
                     let back = row[1].trimmingCharacters(in: .whitespacesAndNewlines)
 
                     guard !front.isEmpty && !back.isEmpty else { continue }
-
-                    try await repository.createCard(front: front, back: back, deckId: deck.id)
-                    cardCount += 1
+                    cardsToCreate.append((front: front, back: back, deckId: deck.id))
                 }
+
+                // Batch insert all cards
+                let cardCount = try await repository.createCards(cardsToCreate)
 
                 await MainActor.run {
                     importResult = .success(cardCount: cardCount)
