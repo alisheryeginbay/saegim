@@ -258,10 +258,11 @@ struct StudySessionView_iOS: View {
                 VStack(spacing: 0) {
                     Spacer()
 
-                    CardView_iOS(card: card, showingAnswer: showingAnswer)
+                    FlippableCardView(card: card, isFlipped: showingAnswer)
+                        .padding(.horizontal)
                         .onTapGesture {
                             if !showingAnswer {
-                                withAnimation(.spring(duration: 0.3)) {
+                                withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
                                     showingAnswer = true
                                 }
                             }
@@ -270,7 +271,7 @@ struct StudySessionView_iOS: View {
                     Spacer()
 
                     if showingAnswer {
-                        ReviewButtons_iOS(card: card, onReview: reviewCard)
+                        ReviewButtonsBar(card: card, onReview: reviewCard)
                             .padding(.bottom, 20)
                     } else {
                         Text("Tap to reveal")
