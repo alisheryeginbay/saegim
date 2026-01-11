@@ -24,8 +24,14 @@ struct DeckListView_iOS: View {
                 List {
                     ForEach(repository.decks) { deck in
                         DeckRow_iOS(deck: deck)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button("Delete", systemImage: "trash", role: .destructive) {
+                                    Task {
+                                        try? await repository.deleteDeck(deck)
+                                    }
+                                }
+                            }
                     }
-                    .onDelete(perform: deleteDecks)
                 }
                 .refreshable {
                     await performSync()
@@ -40,15 +46,6 @@ struct DeckListView_iOS: View {
             try await repository.fetchDecks()
         } catch {
             // Error handled by SyncStateManager
-        }
-    }
-
-    private func deleteDecks(at offsets: IndexSet) {
-        for index in offsets {
-            let deck = repository.decks[index]
-            Task {
-                try? await repository.deleteDeck(deck)
-            }
         }
     }
 }
