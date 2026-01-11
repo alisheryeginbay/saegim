@@ -90,8 +90,9 @@ struct ContentView_iOS: View {
     }
 
     private func createDeck() {
+        let name = newDeckName
         Task {
-            try? await repository.createDeck(name: newDeckName, description: "", parentId: nil)
+            try? await repository.createDeck(name: name, description: "", parentId: nil)
         }
     }
 }

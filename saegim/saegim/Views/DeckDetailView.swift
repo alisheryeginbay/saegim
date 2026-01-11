@@ -152,8 +152,10 @@ struct DeckDetailView: View {
     }
 
     private func createSubdeck() {
+        let name = newSubdeckName
+        let parentId = deck.id
         Task {
-            try? await repository.createDeck(name: newSubdeckName, description: "", parentId: deck.id)
+            try? await repository.createDeck(name: name, description: "", parentId: parentId)
         }
     }
 }
@@ -212,8 +214,9 @@ struct AllDecksView: View {
     }
 
     private func createDeck() {
+        let name = newDeckName
         Task {
-            try? await repository.createDeck(name: newDeckName, description: "", parentId: nil)
+            try? await repository.createDeck(name: name, description: "", parentId: nil)
         }
     }
 }
