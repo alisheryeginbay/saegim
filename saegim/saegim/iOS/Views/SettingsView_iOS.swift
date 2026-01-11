@@ -14,8 +14,6 @@ struct SettingsView_iOS: View {
     @EnvironmentObject private var repository: DataRepository
     @ObservedObject private var syncState = SyncStateManager.shared
 
-    @AppStorage("dailyNewCards") private var dailyNewCards = 20
-    @AppStorage("dailyReviewCards") private var dailyReviewCards = 100
     @AppStorage("showTimer") private var showTimer = true
     @AppStorage("autoPlayAudio") private var autoPlayAudio = false
 
@@ -23,26 +21,6 @@ struct SettingsView_iOS: View {
 
     var body: some View {
         Form {
-            Section("Daily Limits") {
-                Stepper(value: $dailyNewCards, in: 1...100) {
-                    HStack {
-                        Text("New cards per day")
-                        Spacer()
-                        Text("\(dailyNewCards)")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Stepper(value: $dailyReviewCards, in: 10...500, step: 10) {
-                    HStack {
-                        Text("Review cards per day")
-                        Spacer()
-                        Text("\(dailyReviewCards)")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-
             Section("Study Session") {
                 Toggle("Show session timer", isOn: $showTimer)
                 Toggle("Auto-play audio", isOn: $autoPlayAudio)

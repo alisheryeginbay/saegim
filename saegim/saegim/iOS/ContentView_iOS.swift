@@ -11,8 +11,6 @@ struct ContentView_iOS: View {
     @EnvironmentObject private var repository: DataRepository
 
     @State private var selectedTab = 0
-    @State private var showingAnkiImport = false
-    @State private var showingCSVImport = false
     @State private var showingNewDeck = false
     @State private var newDeckName = ""
 
@@ -34,17 +32,8 @@ struct ContentView_iOS: View {
                     .navigationTitle("Decks")
                     .toolbar {
                         ToolbarItem(placement: .topBarTrailing) {
-                            Menu {
-                                Button("New Deck", systemImage: "folder.badge.plus") {
-                                    showingNewDeck = true
-                                }
-                                Divider()
-                                Button("Import from Anki", systemImage: "square.and.arrow.down") {
-                                    showingAnkiImport = true
-                                }
-                                Button("Import from CSV", systemImage: "doc.text") {
-                                    showingCSVImport = true
-                                }
+                            Button {
+                                showingNewDeck = true
                             } label: {
                                 Image(systemName: "plus")
                             }
@@ -65,16 +54,6 @@ struct ContentView_iOS: View {
                 Label("Settings", systemImage: "gear")
             }
             .tag(2)
-        }
-        .sheet(isPresented: $showingAnkiImport) {
-            NavigationStack {
-                AnkiImportView()
-            }
-        }
-        .sheet(isPresented: $showingCSVImport) {
-            NavigationStack {
-                CSVImportView()
-            }
         }
         .alert("New Deck", isPresented: $showingNewDeck) {
             TextField("Name", text: $newDeckName)
